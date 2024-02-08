@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.pokemon.app"
+    namespace = "com.pokedex"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.pokemon.app"
+        applicationId = "com.pokedex"
         minSdk = 28
         targetSdk = 34
         versionCode = 1
