@@ -1,0 +1,318 @@
+package com.pokedex.presentation.pokemonList
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.graphics.ColorUtils
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
+import com.mxalbert.sharedelements.LocalSharedElementsRootScope
+import com.mxalbert.sharedelements.SharedElement
+import com.mxalbert.sharedelements.SharedMaterialContainer
+import com.pokedex.domain.model.Pokemon
+import com.pokedex.domain.model.PokemonDetails
+import com.pokedex.presentation.CrossFadeTransitionSpec
+import com.pokedex.presentation.ListScreen
+import com.pokedex.presentation.MaterialFadeInTransitionSpec
+import com.pokedex.presentation.changePokemon
+import com.pokedex.presentation.pokemonList.components.LoadingAnimation
+import com.pokedex.presentation.pokemonList.components.RetrySection
+import com.pokedex.presentation.previousSelectedPokemon
+import com.pokedex.ui.theme.clashDisplayFont
+import com.pokedex.util.Resource
+import com.pokedex.util.parseTypeToColor
+import com.pokedex.util.parseTypeToDrawable
+import timber.log.Timber
+import java.util.Locale
+
+@Composable
+fun PokemonListScreen(
+    listState: LazyGridState,
+    viewModel: PokemonViewModel = hiltViewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val pokemonList = state.pokemonList
+
+    LaunchedEffect(listState) {
+        val previousIndex = previousSelectedPokemon.coerceAtLeast(0)
+        if (!listState.layoutInfo.visibleItemsInfo.any { it.index == previousIndex }) {
+            listState.scrollToItem(previousIndex)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Top
+    ) {
+        val scope = LocalSharedElementsRootScope.current!!
+
+        LazyVerticalGrid(
+            state = listState,
+            contentPadding = PaddingValues(13.dp),
+            columns = GridCells.Fixed(2),
+            verticalArrangement = Arrangement.spacedBy(15.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val itemCount = if (pokemonList.size % 2 == 0) {
+                pokemonList.size
+            } else {
+                pokemonList.size + 1
+            }
+            items(count = pokemonList.size) {item ->
+                if (item >= itemCount - 1 && !state.endReached && !state.isLoading) {
+                    LaunchedEffect(key1 = true) {
+                        viewModel.loadPokemonPaginated()
+                    }
+                }
+                PokemonItem(
+                    item = pokemonList[item],
+                    modifier = Modifier.clickable(
+                        enabled = !scope.isRunningTransition,
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        scope.changePokemon(item, pokemonList)
+                    }
+                )
+            }
+        }
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if(state.isLoading) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(80.dp),
+                        color = Color(0xFFE4A121),
+                        strokeWidth = 5.dp,
+                    )
+                }
+            }
+
+            if(state.loadError.isNotEmpty()) {
+                RetrySection(error = state.loadError) {
+                    viewModel.loadPokemonPaginated()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PokemonItem(
+    item: Pokemon,
+    modifier: Modifier = Modifier,
+    viewModel: PokemonViewModel = hiltViewModel(),
+) {
+    val defaultColor = Color.Gray
+
+    var dominantColor by remember {
+        mutableStateOf(defaultColor)
+    }
+
+    var dominantDarkerColor by remember {
+        mutableStateOf(defaultColor)
+    }
+
+    val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.3f)
+
+    val pokemonDetails by produceState<Resource<PokemonDetails>>(initialValue = Resource.Loading()) {
+        value = viewModel.getPokemonDetails(item.id)
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .background(Color(softerColor))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier.padding(vertical = 13.dp, horizontal = 10.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.SpaceAround
+                    ) {
+                        Text(
+                            text = item.id.padStart(3, '0'),
+                            color = dominantDarkerColor,
+                            fontFamily = clashDisplayFont,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 25.sp
+                        )
+                        SharedElement(
+                            key = item.name,
+                            screenKey = ListScreen,
+                            transitionSpec = CrossFadeTransitionSpec
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(bottom = 5.dp)
+                                    .fillMaxWidth()
+                                    .height(20.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    text = item.name.replaceFirstChar {
+                                        if (it.isLowerCase()) it.titlecase(
+                                            Locale.ROOT
+                                        ) else
+                                            it.toString()
+                                    },
+                                    color = Color.Black,
+                                    style = TextStyle(
+                                        fontFamily = clashDisplayFont,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp
+                                    )
+                                )
+                            }
+                        }
+
+                        PokemonTypesSection(pokemonDetails = pokemonDetails)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    SharedMaterialContainer(
+                        key = item.imageUrl,
+                        screenKey = ListScreen,
+                        color = Color.Transparent,
+                        transitionSpec = MaterialFadeInTransitionSpec
+                    ) {
+                        SubcomposeAsyncImage(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(95.dp)
+                                .align(Alignment.CenterEnd),
+                            contentScale = ContentScale.Crop,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(item.imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = item.name,
+                            onSuccess = {
+                                viewModel.calcDominantColor(it.result.drawable) { color, darkerColor ->
+                                    dominantColor = color
+                                    dominantDarkerColor = darkerColor
+                                }
+                            },
+                            loading = {
+                                LoadingAnimation()
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PokemonTypesSection(
+    pokemonDetails: Resource<PokemonDetails>
+) {
+    when (pokemonDetails) {
+        is Resource.Success -> {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                for(type in pokemonDetails.data!!.type) {
+                    Box(
+                        modifier = Modifier
+                            .size(17.dp)
+                            .clip(CircleShape)
+                            .background(parseTypeToColor(type!!)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = parseTypeToDrawable(type)),
+                            contentDescription = type,
+                            modifier = Modifier.size(10.5.dp)
+                        )
+                    }
+                }
+            }
+        }
+        is Resource.Error -> {
+            Timber.tag("TAG").e(pokemonDetails.message)
+        }
+        is Resource.Loading -> {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Center
+            ) {
+                LoadingAnimation()
+            }
+        }
+    }
+}
+

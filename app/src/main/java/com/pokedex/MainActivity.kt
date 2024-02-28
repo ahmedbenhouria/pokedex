@@ -11,8 +11,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
-import com.pokedex.ui.screens.NavGraphs
-import com.pokedex.ui.theme.PokemonAppTheme
+import com.pokedex.presentation.NavGraphs
+import com.pokedex.ui.theme.PokedexAppTheme
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.defaults.RootNavGraphDefaultAnimations
 import com.ramcosta.composedestinations.rememberNavHostEngine
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            PokemonAppTheme {
+            PokedexAppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White

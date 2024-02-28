@@ -2,11 +2,7 @@ package com.pokedex.util
 
 import androidx.compose.ui.graphics.Color
 import com.pokedex.R
-import com.pokedex.data.models.remote.Stat
-import com.pokedex.data.models.remote.Type
-import com.pokedex.ui.theme.AtkColor
 import com.pokedex.ui.theme.Bug
-import com.pokedex.ui.theme.DefColor
 import com.pokedex.ui.theme.Dragon
 import com.pokedex.ui.theme.Electric
 import com.pokedex.ui.theme.Fairy
@@ -16,21 +12,17 @@ import com.pokedex.ui.theme.Flying
 import com.pokedex.ui.theme.Ghost
 import com.pokedex.ui.theme.Grass
 import com.pokedex.ui.theme.Ground
-import com.pokedex.ui.theme.HPColor
 import com.pokedex.ui.theme.Ice
 import com.pokedex.ui.theme.Normal
 import com.pokedex.ui.theme.Poison
 import com.pokedex.ui.theme.Psychic
 import com.pokedex.ui.theme.Rock
-import com.pokedex.ui.theme.SpAtkColor
-import com.pokedex.ui.theme.SpDefColor
-import com.pokedex.ui.theme.SpdColor
 import com.pokedex.ui.theme.Steel
 import com.pokedex.ui.theme.Water
 import java.util.Locale
 
-fun parseTypeToDrawable(type: Type): Int {
-    return when(type.type.name.lowercase(Locale.ROOT)) {
+fun parseTypeToDrawable(type: String): Int {
+    return when(type.lowercase(Locale.ROOT)) {
         "normal" -> R.drawable.normal
         "fire" -> R.drawable.fire
         "water" -> R.drawable.water
@@ -53,8 +45,8 @@ fun parseTypeToDrawable(type: Type): Int {
     }
 }
 
-fun parseTypeToColor(type: Type): Color {
-    return when(type.type.name.lowercase(Locale.ROOT)) {
+fun parseTypeToColor(type: String): Color {
+    return when(type.lowercase(Locale.ROOT)) {
         "normal" -> Steel
         "fire" -> Fire
         "water" -> Water
@@ -77,7 +69,7 @@ fun parseTypeToColor(type: Type): Color {
     }
 }
 
-fun parseStatToColor(stat: Stat): Color {
+/*fun parseStatToColor(stat: Stat): Color {
     return when(stat.stat.name.lowercase(Locale.ROOT)) {
         "hp" -> HPColor
         "attack" -> AtkColor
@@ -99,4 +91,4 @@ fun parseStatToAbbr(stat: Stat): String {
         "speed" -> "SPD"
         else -> ""
     }
-}
+}*/
