@@ -82,7 +82,7 @@ fun PokemonDetailsScreen(
 
     val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.4f)
 
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.screenState.collectAsStateWithLifecycle()
     val pokemonList = state.pokemonList
 
     var isInfoClicked by remember { mutableStateOf(false) }
@@ -216,11 +216,11 @@ fun PokemonDetailsScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
                                     Pulsating {
-                                        Image(
+                                    /*    Image(
                                             painter = painterResource(id = R.drawable.pokeball),
                                             contentDescription = null,
                                             modifier = Modifier.size(65.dp)
-                                        )
+                                        )*/
                                     }
 
                                     Spacer(modifier = Modifier.height(20.dp))

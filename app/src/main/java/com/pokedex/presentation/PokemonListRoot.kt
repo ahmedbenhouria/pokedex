@@ -56,7 +56,7 @@ fun PokemonListRoot(
     viewModel: PokemonViewModel = hiltViewModel()
 ) {
     val systemUiController = rememberSystemUiController()
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.screenState.collectAsStateWithLifecycle()
 
     SideEffect {
         systemUiController.setStatusBarColor(
