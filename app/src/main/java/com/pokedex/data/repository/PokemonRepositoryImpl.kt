@@ -1,6 +1,7 @@
 package com.pokedex.data.repository
 
 import com.pokedex.data.remote.PokeApi
+import com.pokedex.data.remote.responses.PokemonListByTypeResponse
 import com.pokedex.data.remote.responses.PokemonListResponse
 import com.pokedex.domain.mapper.toDomainPokemonDetails
 import com.pokedex.domain.model.PokemonDetails
@@ -31,4 +32,12 @@ class PokemonRepositoryImpl @Inject constructor(private val api: PokeApi) : Poke
       return Resource.Success(response)
    }
 
+   override suspend fun getPokemonListByType(id: String): Resource<PokemonListByTypeResponse> {
+      val response = try {
+         api.getPokemonListByType(id)
+      } catch(e: Exception) {
+         return Resource.Error("An unknown error occurred.")
+      }
+      return Resource.Success(response)
+   }
 }

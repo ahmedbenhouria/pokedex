@@ -16,19 +16,22 @@ import com.pokedex.util.Constants.PAGE_SIZE
 import com.pokedex.util.Resource
 import com.pokedex.util.getPokemonImage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PokemonViewModel @Inject constructor(private val repository: PokemonRepositoryImpl) : ViewModel() {
 
@@ -37,13 +40,19 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
     private val _screenState = MutableStateFlow(PokemonListScreenState())
 
     private val _searchQuery= MutableStateFlow("")
+    val searchQuery= _searchQuery.asStateFlow()
+
+    private val _pokemonTypeId= MutableStateFlow("")
+    val pokemonTypeId = _pokemonTypeId.asStateFlow()
+
+    private var cachedPokemonList = mutableListOf<Pokemon>()
 
     val screenState = _searchQuery
         .debounce(500L)
         .combine(_screenState) { searchQuery, screenState ->
             if (searchQuery.isNotEmpty()) {
                 screenState.copy(
-                    pokemonList = screenState.pokemonList.filter { pokemon ->
+                    data = screenState.data.filter { pokemon ->
                         pokemon.name.contains(searchQuery.trim(), ignoreCase = true) ||
                                 pokemon.id.padStart(3, '0') == searchQuery.trim().padStart(3, '0')
                     },
@@ -53,15 +62,17 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
             } else {
                 screenState.copy(isSearching = false)
             }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PokemonListScreenState())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PokemonListScreenState())
 
     init {
         loadPokemonPaginated()
-    }
 
-    fun onSearchQueryChange(newQuery: String) {
-        _searchQuery.value = newQuery
+        _pokemonTypeId
+            .filter { it.isNotEmpty() }
+            .mapLatest {id ->
+                cachedPokemonList = _screenState.value.data.toMutableList()
+                getPokemonListByType(id)
+            }.launchIn(viewModelScope)
     }
 
     fun loadPokemonPaginated() {
@@ -85,14 +96,14 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                     }
 
                     _curPage++
-                    val updatedPokemonList = _screenState.value.pokemonList.toMutableList()
+                    val updatedPokemonList = _screenState.value.data.toMutableList()
                     updatedPokemonList += pokemonEntries
 
                     _screenState.update {
                         it.copy(
                             loadError = "",
                             isLoading = false,
-                            pokemonList = updatedPokemonList
+                            data = updatedPokemonList
                         )
                     }
                 }
@@ -115,6 +126,53 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
         }
     }
 
+    fun getPokemonListByType(id: String) {
+        _screenState.update {
+            it.copy(
+                data = emptyList(),
+                isLoading = true
+            )
+        }
+
+        viewModelScope.launch {
+            when (val result = repository.getPokemonListByType(id)) {
+                is Resource.Success -> {
+                    _screenState.update { screenState ->
+                        screenState.copy(
+                            data = result.data!!.pokemon!!.map {
+                                Pokemon(
+                                    id = it.pokemon.getId(),
+                                    name = it.pokemon.name,
+                                    imageUrl = getPokemonImage(it.pokemon.getId())
+                                )
+                            },
+                            isLoading = false,
+                            loadError = "",
+                            isDataFiltered = true
+                        )
+                    }
+                }
+
+                is Resource.Error -> {
+                    _screenState.update {
+                        it.copy(
+                            loadError = result.message!!,
+                            isLoading = false,
+                            isDataFiltered = false
+                        )
+                    }
+                }
+
+                else -> {
+                    _screenState.update {
+                        it.copy(isLoading = true)
+                    }
+                }
+            }
+        }
+
+    }
+
     fun calcDominantColor(drawable: Drawable, onFinish: (Color, Color) -> Unit) {
         val bmp = (drawable as BitmapDrawable).bitmap.copy(Bitmap.Config.ARGB_8888, true)
 
@@ -128,6 +186,25 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
 
     suspend fun getPokemonDetails(id: String): Resource<PokemonDetails> {
         return repository.getPokemonDetails(id)
+    }
+
+    fun onSearchQueryChange(newQuery: String) {
+        _searchQuery.value = newQuery
+    }
+
+    fun onPokemonTypeChange(typeId: String) {
+        _pokemonTypeId.value = typeId
+        if (typeId.isEmpty()) {
+            _screenState.update {
+                it.copy(data = cachedPokemonList)
+            }
+        }
+    }
+
+    fun onSearchByTypeVisible(isVisible: Boolean) {
+        _screenState.update {
+            it.copy(isSearchByTypeVisible = isVisible)
+        }
     }
 }
 

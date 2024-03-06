@@ -83,7 +83,9 @@ fun PokemonDetailsScreen(
     val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.4f)
 
     val state by viewModel.screenState.collectAsStateWithLifecycle()
-    val pokemonList = state.pokemonList
+    val pokemonTypeId by viewModel.pokemonTypeId.collectAsStateWithLifecycle()
+
+    val pokemonList = state.data
 
     var isInfoClicked by remember { mutableStateOf(false) }
 

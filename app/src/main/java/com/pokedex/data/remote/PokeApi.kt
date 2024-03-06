@@ -1,5 +1,6 @@
 package com.pokedex.data.remote
 
+import com.pokedex.data.remote.responses.PokemonListByTypeResponse
 import com.pokedex.data.remote.responses.PokemonDetailsDto
 import com.pokedex.data.remote.responses.PokemonListResponse
 import retrofit2.http.GET
@@ -15,5 +16,12 @@ interface PokeApi {
     ): PokemonListResponse
 
     @GET("pokemon/{id}")
-    suspend fun getPokemonDetails(@Path("id") id: String): PokemonDetailsDto
+    suspend fun getPokemonDetails(
+        @Path("id") id: String
+    ): PokemonDetailsDto
+
+    @GET("type/{id}")
+    suspend fun getPokemonListByType(
+        @Path("id") id: String
+    ): PokemonListByTypeResponse
 }

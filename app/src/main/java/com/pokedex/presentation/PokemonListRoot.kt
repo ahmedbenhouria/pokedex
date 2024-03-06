@@ -56,7 +56,12 @@ fun PokemonListRoot(
     viewModel: PokemonViewModel = hiltViewModel()
 ) {
     val systemUiController = rememberSystemUiController()
+
     val state by viewModel.screenState.collectAsStateWithLifecycle()
+
+    val pokemonTypeId by viewModel.pokemonTypeId.collectAsStateWithLifecycle()
+
+    val pokemonList = state.data
 
     SideEffect {
         systemUiController.setStatusBarColor(
@@ -68,7 +73,7 @@ fun PokemonListRoot(
 
     SharedElementsRoot {
         BackHandler(enabled = selectedPokemon >= 0) {
-            changePokemon(-1, state.pokemonList)
+            changePokemon(-1, pokemonList)
         }
 
         val listState = rememberLazyGridState()
@@ -79,7 +84,7 @@ fun PokemonListRoot(
         ) { item ->
             when {
                 item < 0 -> PokemonListScreen(listState)
-                else -> PokemonDetailsScreen(state.pokemonList[item])
+                else -> PokemonDetailsScreen(pokemonList[item])
             }
         }
     }

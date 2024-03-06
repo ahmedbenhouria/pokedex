@@ -9,13 +9,13 @@
               <type value="RUNNING_DEVICE_TARGET" />
               <deviceKey>
                 <Key>
-                  <type value="VIRTUAL_DEVICE_PATH" />
-                  <value value="C:\Users\ahmed\.android\avd\Pixel_7_API_TiramisuPrivacySandbox.avd" />
+                  <type value="SERIAL_NUMBER" />
+                  <value value="RF8M64BJRYL" />
                 </Key>
               </deviceKey>
             </Target>
           </runningDeviceTargetSelectedWithDropDown>
-          <timeTargetWasSelectedWithDropDown value="2024-03-01T14:42:43.546856500Z" />
+          <timeTargetWasSelectedWithDropDown value="2024-03-06T16:27:21.165337Z" />
         </State>
       </entry>
     </value>
