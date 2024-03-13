@@ -21,10 +21,6 @@ import com.mxalbert.sharedelements.SharedElementsRoot
 import com.mxalbert.sharedelements.SharedElementsRootScope
 import com.mxalbert.sharedelements.SharedElementsTransitionSpec
 import com.pokedex.domain.model.Pokemon
-import com.pokedex.presentation.pokemonDetails.PokemonDetailsScreen
-import com.pokedex.presentation.pokemonList.PokemonListScreen
-import com.pokedex.presentation.pokemonList.PokemonViewModel
-import com.ramcosta.composedestinations.annotation.Destination
 
 var selectedPokemon: Int by mutableIntStateOf(-1)
 var previousSelectedPokemon: Int = -1
@@ -50,18 +46,15 @@ val MaterialFadeOutTransitionSpec = MaterialContainerTransformSpec(
     fadeMode = FadeMode.Out
 )
 
-@Destination(start = true)
-@Composable
+/*@Composable
 fun PokemonListRoot(
     viewModel: PokemonViewModel = hiltViewModel()
 ) {
     val systemUiController = rememberSystemUiController()
 
-    val state by viewModel.screenState.collectAsStateWithLifecycle()
+    val pokemonListState by viewModel.pokemonListState.collectAsStateWithLifecycle()
 
-    val pokemonTypeId by viewModel.pokemonTypeId.collectAsStateWithLifecycle()
-
-    val pokemonList = state.data
+    val pokemonList = pokemonListState.data
 
     SideEffect {
         systemUiController.setStatusBarColor(
@@ -88,7 +81,7 @@ fun PokemonListRoot(
             }
         }
     }
-}
+}*/
 
 fun SharedElementsRootScope.changePokemon(
     user: Int,

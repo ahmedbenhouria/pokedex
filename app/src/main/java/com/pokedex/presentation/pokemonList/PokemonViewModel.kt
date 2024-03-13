@@ -37,19 +37,19 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
 
     private var _curPage = 0
 
-    private val _screenState = MutableStateFlow(PokemonListScreenState())
-
-    private val _searchQuery= MutableStateFlow("")
-    val searchQuery= _searchQuery.asStateFlow()
+    private val _pokemonListState = MutableStateFlow(PokemonListUiState())
 
     private val _pokemonTypeId= MutableStateFlow("")
     val pokemonTypeId = _pokemonTypeId.asStateFlow()
 
+    private val _searchQuery= MutableStateFlow("")
+    val searchQuery= _searchQuery.asStateFlow()
+
     private var cachedPokemonList = mutableListOf<Pokemon>()
 
-    val screenState = _searchQuery
+    val pokemonListState = _searchQuery
         .debounce(500L)
-        .combine(_screenState) { searchQuery, screenState ->
+        .combine(_pokemonListState) { searchQuery, screenState ->
             if (searchQuery.isNotEmpty()) {
                 screenState.copy(
                     data = screenState.data.filter { pokemon ->
@@ -62,28 +62,58 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
             } else {
                 screenState.copy(isSearching = false)
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PokemonListScreenState())
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = PokemonListUiState()
+        )
 
     init {
         loadPokemonPaginated()
 
         _pokemonTypeId
             .filter { it.isNotEmpty() }
-            .mapLatest {id ->
-                cachedPokemonList = _screenState.value.data.toMutableList()
+            .mapLatest { id ->
+                if (cachedPokemonList.isEmpty()) {
+                    cachedPokemonList = _pokemonListState.value.data.toMutableList()
+                }
                 getPokemonListByType(id)
             }.launchIn(viewModelScope)
     }
 
+    fun onEvent(event: PokemonUiEvent) {
+        when (event) {
+            is PokemonUiEvent.SearchQueryChanged -> {
+                _searchQuery.value = event.searchQuery
+            }
+            is PokemonUiEvent.PokemonTypeIdChanged -> {
+                _pokemonTypeId.value = event.typeId
+            }
+            is PokemonUiEvent.ResetData -> {
+                _pokemonTypeId.value = ""
+
+                if (_pokemonListState.value.isDataFiltered) {
+                    _pokemonListState.update {
+                        it.copy(
+                            data = cachedPokemonList,
+                            isDataFiltered = false,
+                            isSearching = false
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     fun loadPokemonPaginated() {
         viewModelScope.launch {
-            _screenState.update {
+            _pokemonListState.update {
                 it.copy(isLoading = true)
             }
 
             when (val result = repository.getPokemonList(_curPage)) {
                 is Resource.Success -> {
-                    _screenState.update {
+                    _pokemonListState.update {
                         it.copy(endReached = _curPage * PAGE_SIZE >= result.data!!.count)
                     }
 
@@ -96,10 +126,10 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                     }
 
                     _curPage++
-                    val updatedPokemonList = _screenState.value.data.toMutableList()
+                    val updatedPokemonList = _pokemonListState.value.data.toMutableList()
                     updatedPokemonList += pokemonEntries
 
-                    _screenState.update {
+                    _pokemonListState.update {
                         it.copy(
                             loadError = "",
                             isLoading = false,
@@ -109,7 +139,7 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                 }
 
                 is Resource.Error -> {
-                    _screenState.update {
+                    _pokemonListState.update {
                         it.copy(
                             loadError = result.message!!,
                             isLoading = false
@@ -118,7 +148,7 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                 }
 
                 else -> {
-                    _screenState.update {
+                    _pokemonListState.update {
                         it.copy(isLoading = true)
                     }
                 }
@@ -126,18 +156,18 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
         }
     }
 
-    fun getPokemonListByType(id: String) {
-        _screenState.update {
-            it.copy(
-                data = emptyList(),
-                isLoading = true
-            )
-        }
-
+    private fun getPokemonListByType(id: String) {
         viewModelScope.launch {
+            _pokemonListState.update {
+                it.copy(
+                    isLoading = true,
+                    isSearching = false
+                )
+            }
+
             when (val result = repository.getPokemonListByType(id)) {
                 is Resource.Success -> {
-                    _screenState.update { screenState ->
+                    _pokemonListState.update { screenState ->
                         screenState.copy(
                             data = result.data!!.pokemon!!.map {
                                 Pokemon(
@@ -154,7 +184,7 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                 }
 
                 is Resource.Error -> {
-                    _screenState.update {
+                    _pokemonListState.update {
                         it.copy(
                             loadError = result.message!!,
                             isLoading = false,
@@ -164,12 +194,13 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                 }
 
                 else -> {
-                    _screenState.update {
-                        it.copy(isLoading = true)
+                    _pokemonListState.update {
+                        it.copy(isLoading = true, isDataFiltered = false)
                     }
                 }
             }
         }
+
 
     }
 
@@ -186,25 +217,6 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
 
     suspend fun getPokemonDetails(id: String): Resource<PokemonDetails> {
         return repository.getPokemonDetails(id)
-    }
-
-    fun onSearchQueryChange(newQuery: String) {
-        _searchQuery.value = newQuery
-    }
-
-    fun onPokemonTypeChange(typeId: String) {
-        _pokemonTypeId.value = typeId
-        if (typeId.isEmpty()) {
-            _screenState.update {
-                it.copy(data = cachedPokemonList)
-            }
-        }
-    }
-
-    fun onSearchByTypeVisible(isVisible: Boolean) {
-        _screenState.update {
-            it.copy(isSearchByTypeVisible = isVisible)
-        }
     }
 }
 

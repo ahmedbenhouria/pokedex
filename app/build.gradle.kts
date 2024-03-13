@@ -121,6 +121,6 @@ dependencies {
     implementation ("io.karn:khttp-android:0.1.0")
 
     // Compose Destinations
-    implementation ("io.github.raamcosta.compose-destinations:core:1.9.54")
-    ksp ("io.github.raamcosta.compose-destinations:ksp:1.9.54")
+    implementation ("io.github.raamcosta.compose-destinations:core:1.10.2")
+    ksp ("io.github.raamcosta.compose-destinations:ksp:1.10.2")
 }

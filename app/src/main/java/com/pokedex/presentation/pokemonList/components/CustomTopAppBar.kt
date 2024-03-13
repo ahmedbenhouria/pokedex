@@ -1,14 +1,12 @@
 package com.pokedex.presentation.pokemonList.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -22,9 +20,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -33,33 +36,37 @@ import com.pokedex.R
 
 @Composable
 fun CustomTopAppBar(
-    bgColor: Color = Color.White,
     searchQuery: String = "",
-    isSearchByTypeVisible: Boolean = false,
-    pokemonTypeId: String = "",
+    isVisible: Boolean = false,
     onSearchQueryChange: (String) -> Unit,
     onSearchBarClick: (Boolean) -> Unit,
-    onSearchByTypeVisible: (Boolean) -> Unit,
-    onPokemonTypeChange: (String) -> Unit
+    onBackBtnClick: () -> Unit,
 ) {
     val localFocusManager = LocalFocusManager.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(bgColor)
             .padding(top = 15.dp)
             .height(85.dp)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        var isRotated by rememberSaveable { mutableStateOf(false) }
+
+        val rotationAngle by animateFloatAsState(
+            targetValue = if (isRotated) 360F else 0f,
+            animationSpec = tween(durationMillis = 2000),
+            label = ""
+        )
+
         AnimatedContent(
-            targetState = isSearchByTypeVisible,
+            targetState = isVisible,
             label = "",
             transitionSpec = {
-                fadeIn(animationSpec = tween(durationMillis = 300, easing = EaseIn))
-                    .togetherWith(fadeOut(animationSpec = tween(durationMillis = 300, easing = EaseOut)))
+                fadeIn(animationSpec = tween(durationMillis = 200))
+                    .togetherWith(fadeOut(animationSpec = tween(durationMillis = 200)))
             }
         ) { targetState ->
             when (targetState) {
@@ -75,13 +82,8 @@ fun CustomTopAppBar(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
-                                if (pokemonTypeId.isNotEmpty()) {
-                                    onSearchByTypeVisible(true)
-                                    onPokemonTypeChange("")
-                                    onSearchQueryChange("")
-                                } else {
-                                    onSearchByTypeVisible(false)
-                                }
+                                onBackBtnClick()
+                                isRotated = !isRotated
                                 localFocusManager.clearFocus()
                             }
                     )
@@ -90,7 +92,9 @@ fun CustomTopAppBar(
                     Image(
                         painter = painterResource(id = R.drawable.pokeball),
                         contentDescription = null,
-                        modifier = Modifier.size(43.dp)
+                        modifier = Modifier
+                            .size(43.dp)
+                            .rotate(rotationAngle)
                     )
                 }
             }
