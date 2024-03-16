@@ -24,6 +24,12 @@ val interFont = FontFamily(
     Font(R.font.inter_bold, FontWeight.Bold)
 )
 
+val sfProFont = FontFamily(
+    Font(R.font.sf_pro_regular, FontWeight.Normal),
+    Font(R.font.sf_pro_medium, FontWeight.Medium),
+    Font(R.font.sf_pro_bold, FontWeight.Bold)
+)
+
 // Set of Material typography styles to start with
 val Typography = Typography(
     bodyLarge = TextStyle(

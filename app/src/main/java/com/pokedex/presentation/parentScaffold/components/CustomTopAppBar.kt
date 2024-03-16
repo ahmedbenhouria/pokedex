@@ -1,4 +1,4 @@
-package com.pokedex.presentation.pokemonList.components
+package com.pokedex.presentation.parentScaffold.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.pokedex.R
+import kotlinx.coroutines.delay
 
 @Composable
 fun CustomTopAppBar(
@@ -47,26 +49,32 @@ fun CustomTopAppBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 15.dp)
+            .padding(top = 25.dp)
             .height(85.dp)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         var isRotated by rememberSaveable { mutableStateOf(false) }
+        var isEnabled by remember { mutableStateOf(true) }
 
         val rotationAngle by animateFloatAsState(
             targetValue = if (isRotated) 360F else 0f,
-            animationSpec = tween(durationMillis = 2000),
+            animationSpec = tween(durationMillis = 1800),
             label = ""
         )
+
+        LaunchedEffect(isEnabled) {
+            delay(200)
+            isEnabled = true
+        }
 
         AnimatedContent(
             targetState = isVisible,
             label = "",
             transitionSpec = {
-                fadeIn(animationSpec = tween(durationMillis = 200))
-                    .togetherWith(fadeOut(animationSpec = tween(durationMillis = 200)))
+                fadeIn(animationSpec = tween(durationMillis = 400))
+                    .togetherWith(fadeOut(animationSpec = tween(durationMillis = 400)))
             }
         ) { targetState ->
             when (targetState) {
@@ -79,10 +87,12 @@ fun CustomTopAppBar(
                             .width(43.dp)
                             .height(34.dp)
                             .clickable(
+                                enabled = isEnabled,
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() }
                             ) {
                                 onBackBtnClick()
+                                isEnabled = false
                                 isRotated = !isRotated
                                 localFocusManager.clearFocus()
                             }

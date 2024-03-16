@@ -120,7 +120,9 @@ dependencies {
     implementation(platform("com.squareup.okhttp3:okhttp-bom:5.0.0-alpha.7"))
     implementation ("io.karn:khttp-android:0.1.0")
 
-    // Compose Destinations
+    implementation ("com.google.accompanist:accompanist-navigation-animation:0.35.0-alpha")
+
+/*    // Compose Destinations
     implementation ("io.github.raamcosta.compose-destinations:core:1.10.2")
-    ksp ("io.github.raamcosta.compose-destinations:ksp:1.10.2")
+    ksp ("io.github.raamcosta.compose-destinations:ksp:1.10.2")*/
 }

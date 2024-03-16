@@ -3,9 +3,14 @@ package com.pokedex.presentation.pokemonList
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
@@ -33,7 +38,10 @@ import javax.inject.Inject
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class PokemonViewModel @Inject constructor(private val repository: PokemonRepositoryImpl) : ViewModel() {
+class PokemonViewModel @Inject constructor(
+    private val repository: PokemonRepositoryImpl,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
     private var _curPage = 0
 
@@ -43,9 +51,8 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
     val pokemonTypeId = _pokemonTypeId.asStateFlow()
 
     private val _searchQuery= MutableStateFlow("")
-    val searchQuery= _searchQuery.asStateFlow()
 
-    private var cachedPokemonList = mutableListOf<Pokemon>()
+//    private var cachedPokemonList = mutableListOf<Pokemon>()
 
     val pokemonListState = _searchQuery
         .debounce(500L)
@@ -69,14 +76,17 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
         )
 
     init {
+        val typeId = savedStateHandle.get<String>("typeId")!!
+        _pokemonTypeId.value = typeId
+
         loadPokemonPaginated()
 
         _pokemonTypeId
             .filter { it.isNotEmpty() }
             .mapLatest { id ->
-                if (cachedPokemonList.isEmpty()) {
+             /*   if (cachedPokemonList.isEmpty()) {
                     cachedPokemonList = _pokemonListState.value.data.toMutableList()
-                }
+                }*/
                 getPokemonListByType(id)
             }.launchIn(viewModelScope)
     }
@@ -89,7 +99,7 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
             is PokemonUiEvent.PokemonTypeIdChanged -> {
                 _pokemonTypeId.value = event.typeId
             }
-            is PokemonUiEvent.ResetData -> {
+    /*        is PokemonUiEvent.ResetData -> {
                 _pokemonTypeId.value = ""
 
                 if (_pokemonListState.value.isDataFiltered) {
@@ -101,7 +111,7 @@ class PokemonViewModel @Inject constructor(private val repository: PokemonReposi
                         )
                     }
                 }
-            }
+            }*/
         }
     }
 

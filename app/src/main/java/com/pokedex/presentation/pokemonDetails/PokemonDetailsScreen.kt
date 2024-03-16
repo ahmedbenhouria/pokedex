@@ -60,10 +60,7 @@ import com.mxalbert.sharedelements.SharedElement
 import com.mxalbert.sharedelements.SharedMaterialContainer
 import com.pokedex.R
 import com.pokedex.domain.model.Pokemon
-import com.pokedex.presentation.CrossFadeTransitionSpec
-import com.pokedex.presentation.DetailsScreen
-import com.pokedex.presentation.MaterialFadeOutTransitionSpec
-import com.pokedex.presentation.changePokemon
+import com.pokedex.presentation.pokemonList.PokemonUiEvent
 import com.pokedex.presentation.pokemonList.PokemonViewModel
 import com.pokedex.ui.theme.clashDisplayFont
 import com.pokedex.ui.theme.interFont
@@ -71,8 +68,8 @@ import com.pokedex.util.parseTypeToDrawable
 
 @Composable
 fun PokemonDetailsScreen(
-    item: Pokemon,
-    viewModel: PokemonViewModel = hiltViewModel(),
+    pokemonId: String,
+    viewModel: PokemonViewModel = hiltViewModel()
 ) {
     val defaultDominantColor = MaterialTheme.colorScheme.surface
 
@@ -81,11 +78,6 @@ fun PokemonDetailsScreen(
     }
 
     val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.4f)
-
-    val pokemonListState by viewModel.pokemonListState.collectAsStateWithLifecycle()
-
-    val pokemonList = pokemonListState.data
-
     var isInfoClicked by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier
@@ -98,13 +90,8 @@ fun PokemonDetailsScreen(
             verticalArrangement = Arrangement.Top
         ) {
 
-            val scope = LocalSharedElementsRootScope.current!!
-
             IconButton(
-                onClick = {
-                    if (!scope.isRunningTransition) {
-                        scope.changePokemon(-1, pokemonList)
-                    } },
+                onClick = {},
                 modifier = Modifier
                     .padding(start = 12.dp, top = 41.dp)
                     .background(
@@ -127,19 +114,13 @@ fun PokemonDetailsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                SharedElement(
-                    key = item.name,
-                    screenKey = DetailsScreen,
-                    transitionSpec = CrossFadeTransitionSpec
-                ) {
-                    Text(
-                        text = item.name,
-                        color = Color.Black,
-                        fontFamily = clashDisplayFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 33.sp
-                    )
-                }
+                Text(
+                    text = "",
+                    color = Color.Black,
+                    fontFamily = clashDisplayFont,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 33.sp
+                )
 
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -155,28 +136,20 @@ fun PokemonDetailsScreen(
                             .alpha(0.6f)
                     )
 
-                    SharedMaterialContainer(
-                        key = item.imageUrl,
-                        screenKey = DetailsScreen,
-                        shape = RoundedCornerShape(25.dp),
-                        color = Color.Transparent,
-                        transitionSpec = MaterialFadeOutTransitionSpec
-                    ) {
-                        SubcomposeAsyncImage(
-                            modifier = Modifier
-                                .size(250.dp)
-                                .align(Alignment.Center),
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(item.imageUrl)
-                                .build(),
-                            contentDescription = null,
-                            onSuccess = {
-                                viewModel.calcDominantColor(it.result.drawable) { color, _ ->
-                                    dominantColor = color
-                                }
+            /*        SubcomposeAsyncImage(
+                        modifier = Modifier
+                            .size(250.dp)
+                            .align(Alignment.Center),
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(item.imageUrl)
+                            .build(),
+                        contentDescription = null,
+                        onSuccess = {
+                            viewModel.calcDominantColor(it.result.drawable) { color, _ ->
+                                dominantColor = color
                             }
-                        )
-                    }
+                        }
+                    )*/
                 }
 
                 AnimatedContent(
@@ -195,11 +168,9 @@ fun PokemonDetailsScreen(
                                     contentDescription = null,
                                     modifier = Modifier
                                         .clickable(
-                                            enabled = !scope.isRunningTransition,
                                             indication = null,
                                             interactionSource = remember { MutableInteractionSource() }
                                         ) {
-                                            scope.changePokemon(pokemonList.indexOf(item) - 1, pokemonList)
                                         }
                                 )
 
@@ -240,11 +211,9 @@ fun PokemonDetailsScreen(
                                     contentDescription = null,
                                     modifier = Modifier
                                         .clickable(
-                                            enabled = !scope.isRunningTransition,
                                             indication = null,
                                             interactionSource = remember { MutableInteractionSource() }
                                         ) {
-                                            scope.changePokemon(pokemonList.indexOf(item) + 1, pokemonList)
                                         }
                                 )
                             }

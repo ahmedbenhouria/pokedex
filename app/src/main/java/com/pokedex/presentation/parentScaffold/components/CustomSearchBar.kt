@@ -1,4 +1,4 @@
-package com.pokedex.presentation.pokemonList.components
+package com.pokedex.presentation.parentScaffold.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokedex.ui.theme.PokedexAppTheme
 import com.pokedex.ui.theme.interFont
+import com.pokedex.ui.theme.sfProFont
 
 @Composable
 fun CustomSearchBar(
@@ -71,8 +72,8 @@ fun CustomSearchBar(
             localFocusManager.clearFocus()
         },
         textStyle = LocalTextStyle.current.copy(
-            fontFamily = interFont,
-            fontSize = 16.sp,
+            fontFamily = sfProFont,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Normal,
             color = Color.Black
         ),
@@ -86,9 +87,9 @@ fun CustomSearchBar(
                         placeholderText,
                         style = LocalTextStyle.current.copy(
                             color = Color.LightGray,
-                            fontFamily = interFont,
+                            fontFamily = sfProFont,
                             fontWeight = FontWeight.Normal,
-                            fontSize = 16.sp
+                            fontSize = 17.sp
                         )
                     )
                     innerTextField()
