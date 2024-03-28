@@ -11,14 +11,14 @@ import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 
 @HiltAndroidApp
-class PokemonApplication : Application() {
+class PokemonApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
     }
 
-/*    override fun newImageLoader(): ImageLoader {
+    override fun newImageLoader(): ImageLoader {
         return ImageLoader(this).newBuilder()
             .memoryCachePolicy(CachePolicy.ENABLED)
             .memoryCache {
@@ -36,5 +36,5 @@ class PokemonApplication : Application() {
             }
             .logger(DebugLogger())
             .build()
-    }*/
+    }
 }
