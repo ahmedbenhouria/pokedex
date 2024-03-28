@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,15 +44,17 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.pokedex.R
 import com.pokedex.domain.model.Pokemon
 import com.pokedex.domain.model.PokemonDetails
+import com.pokedex.util.Screen
+import com.pokedex.presentation.filterPokemons.Filter
+import com.pokedex.presentation.filterPokemons.typesFilteringList
 import com.pokedex.presentation.pokemonList.components.LoadingAnimation
 import com.pokedex.presentation.pokemonList.components.RetrySection
-import com.pokedex.presentation.searchByType.Type
-import com.pokedex.presentation.searchByType.typesList
 import com.pokedex.ui.theme.clashDisplayFont
 import com.pokedex.ui.theme.interFont
 import com.pokedex.ui.theme.sfProFont
@@ -65,8 +66,10 @@ import java.util.Locale
 
 @Composable
 fun PokemonListScreen(
+    navController: NavHostController,
     onColorChange: (Color) -> Unit,
     searchQuery: String,
+    onItemClick: (String, List<String>) -> Unit,
     viewModel: PokemonViewModel = hiltViewModel()
 ) {
     val state by viewModel.pokemonListState.collectAsStateWithLifecycle()
@@ -78,10 +81,14 @@ fun PokemonListScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         if (typeId.isNotEmpty()) {
-            typesList.find { it.id == typeId }?.let {
+            typesFilteringList.find { it.id == typeId }?.let {
                 TypeBarSection(
                     type = it,
-                    onColorChange = { color -> onColorChange(color) }
+                    onColorChange = { color ->
+                        if (navController.currentDestination?.route != Screen.PokemonDetails.route) {
+                            onColorChange(color)
+                        }
+                    }
                 )
             }
         }
@@ -107,6 +114,10 @@ fun PokemonListScreen(
                 } else
                     Modifier.padding(top = 5.dp),
                 state = state,
+                onItemClick = { id, color ->
+                    onColorChange(color)
+                    onItemClick(id, if (typeId.isNotEmpty()) state.data.map { it.id } else emptyList())
+                },
                 loadPokemonPaginated = { viewModel.loadPokemonPaginated() }
             )
         }
@@ -117,15 +128,10 @@ fun PokemonListScreen(
 private fun PokemonListSection(
     modifier: Modifier = Modifier,
     state: PokemonListUiState,
+    onItemClick: (String, Color) -> Unit,
     loadPokemonPaginated: () -> Unit = {}
 ) {
     val listState = rememberLazyGridState()
-
-    LaunchedEffect(key1 = state.isSearching) {
-        if (listState.firstVisibleItemIndex != 0) {
-            listState.animateScrollToItem(0)
-        }
-    }
 
     if (state.isSearching && state.data.isEmpty()) {
         Column(
@@ -180,12 +186,24 @@ private fun PokemonListSection(
                     }
                     PokemonItem(
                         item = state.data[item],
-                        modifier = Modifier.clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-//                                navController.navigate(PokemonDetailsScreenDestination(item = state.data[item].toPokemonParcelize()).route)
+                        onItemClick = { id, color ->
+                            onItemClick(id, color)
                         }
+                    )
+                }
+            }
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 60.dp)
+            ) {
+                if(state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(90.dp),
+                        color = Color(0xFFE4A121),
+                        strokeWidth = 5.dp
                     )
                 }
             }
@@ -196,32 +214,29 @@ private fun PokemonListSection(
 @Composable
 fun PokemonItem(
     item: Pokemon,
-    modifier: Modifier = Modifier,
+    onItemClick: (String, Color) -> Unit,
     viewModel: PokemonViewModel = hiltViewModel(),
 ) {
     val defaultColor = Color.Gray
 
-    var dominantColor by remember {
-        mutableStateOf(defaultColor)
-    }
+    var dominantColor by remember { mutableStateOf(defaultColor) }
+    var dominantDarkerColor by remember { mutableStateOf(defaultColor) }
 
-    var dominantDarkerColor by remember {
-        mutableStateOf(defaultColor)
-    }
-
-    val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.4f)
-
-    val pokemonDetails by produceState<Resource<PokemonDetails>>(initialValue = Resource.Loading()) {
-        value = viewModel.getPokemonDetails(item.id)
-    }
+    val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.3f)
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .height(100.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(Color(softerColor))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onItemClick(item.id, Color(softerColor))
+            }
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -273,7 +288,28 @@ fun PokemonItem(
                                 )
                             )
                         }
-                        PokemonTypesSection(pokemonDetails = pokemonDetails)
+
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            for(type in item.type) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(17.dp)
+                                        .clip(CircleShape)
+                                        .background(parseTypeToColor(type!!)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = parseTypeToDrawable(type)),
+                                        contentDescription = type,
+                                        modifier = Modifier.size(10.5.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -357,11 +393,10 @@ fun PokemonTypesSection(
 
 @Composable
 fun TypeBarSection(
-    type: Type,
+    type: Filter,
     onColorChange: (Color) -> Unit
 ) {
     val colorId = ColorUtils.blendARGB(parseTypeToColor(type.name).toArgb(), Color.White.toArgb(), 0.7f)
-
     onColorChange(Color(colorId))
 
     Column(

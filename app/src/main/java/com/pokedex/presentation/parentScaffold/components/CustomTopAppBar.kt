@@ -49,7 +49,7 @@ fun CustomTopAppBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 25.dp)
+            .padding(top = 5.dp)
             .height(85.dp)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,

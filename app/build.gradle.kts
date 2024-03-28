@@ -58,7 +58,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
 
     // Compose
-    val composeVersion = "2023.03.00"
+    val composeVersion = "2024.02.02"
     implementation(platform("androidx.compose:compose-bom:$composeVersion"))
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.runtime:runtime-livedata")
@@ -66,7 +66,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.material3:material3:1.2.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
@@ -93,12 +93,12 @@ dependencies {
     implementation("com.mxalbert.sharedelements:shared-elements:0.1.0-SNAPSHOT")
 
     // Dagger Hilt
-    implementation("com.google.dagger:hilt-android:2.48.1")
+    implementation("com.google.dagger:hilt-android:2.50")
     kapt("com.google.dagger:hilt-android-compiler:2.48.1")
-    implementation("androidx.hilt:hilt-work:1.1.0")
-    kapt("androidx.hilt:hilt-compiler:1.1.0")
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    kapt("androidx.hilt:hilt-compiler:1.2.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // GSON
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
@@ -121,8 +121,4 @@ dependencies {
     implementation ("io.karn:khttp-android:0.1.0")
 
     implementation ("com.google.accompanist:accompanist-navigation-animation:0.35.0-alpha")
-
-/*    // Compose Destinations
-    implementation ("io.github.raamcosta.compose-destinations:core:1.10.2")
-    ksp ("io.github.raamcosta.compose-destinations:ksp:1.10.2")*/
 }

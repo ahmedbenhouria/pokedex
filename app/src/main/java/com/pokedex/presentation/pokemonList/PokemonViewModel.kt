@@ -3,10 +3,6 @@ package com.pokedex.presentation.pokemonList
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
@@ -16,27 +12,24 @@ import androidx.lifecycle.viewModelScope
 import androidx.palette.graphics.Palette
 import com.pokedex.data.repository.PokemonRepositoryImpl
 import com.pokedex.domain.model.Pokemon
-import com.pokedex.domain.model.PokemonDetails
 import com.pokedex.util.Constants.PAGE_SIZE
 import com.pokedex.util.Resource
 import com.pokedex.util.getPokemonImage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class PokemonViewModel @Inject constructor(
     private val repository: PokemonRepositoryImpl,
@@ -51,8 +44,6 @@ class PokemonViewModel @Inject constructor(
     val pokemonTypeId = _pokemonTypeId.asStateFlow()
 
     private val _searchQuery= MutableStateFlow("")
-
-//    private var cachedPokemonList = mutableListOf<Pokemon>()
 
     val pokemonListState = _searchQuery
         .debounce(500L)
@@ -79,16 +70,11 @@ class PokemonViewModel @Inject constructor(
         val typeId = savedStateHandle.get<String>("typeId")!!
         _pokemonTypeId.value = typeId
 
-        loadPokemonPaginated()
-
-        _pokemonTypeId
-            .filter { it.isNotEmpty() }
-            .mapLatest { id ->
-             /*   if (cachedPokemonList.isEmpty()) {
-                    cachedPokemonList = _pokemonListState.value.data.toMutableList()
-                }*/
-                getPokemonListByType(id)
-            }.launchIn(viewModelScope)
+        if (typeId.isEmpty()) {
+            loadPokemonPaginated()
+        } else {
+            getPokemonListByType(typeId)
+        }
     }
 
     fun onEvent(event: PokemonUiEvent) {
@@ -99,19 +85,6 @@ class PokemonViewModel @Inject constructor(
             is PokemonUiEvent.PokemonTypeIdChanged -> {
                 _pokemonTypeId.value = event.typeId
             }
-    /*        is PokemonUiEvent.ResetData -> {
-                _pokemonTypeId.value = ""
-
-                if (_pokemonListState.value.isDataFiltered) {
-                    _pokemonListState.update {
-                        it.copy(
-                            data = cachedPokemonList,
-                            isDataFiltered = false,
-                            isSearching = false
-                        )
-                    }
-                }
-            }*/
         }
     }
 
@@ -135,9 +108,18 @@ class PokemonViewModel @Inject constructor(
                         )
                     }
 
+                    val pokemonTypes = pokemonEntries.map {
+                        async { repository.getPokemonTypes(it.id) }
+                    }.awaitAll()
+
+                    // Combine the Pokémon entries with their types
+                    val updatedPokemonEntries = pokemonEntries.zip(pokemonTypes) { pokemonEntry, types ->
+                        pokemonEntry.copy(type = types)
+                    }
+
                     _curPage++
                     val updatedPokemonList = _pokemonListState.value.data.toMutableList()
-                    updatedPokemonList += pokemonEntries
+                    updatedPokemonList += updatedPokemonEntries
 
                     _pokemonListState.update {
                         it.copy(
@@ -177,15 +159,25 @@ class PokemonViewModel @Inject constructor(
 
             when (val result = repository.getPokemonListByType(id)) {
                 is Resource.Success -> {
+                    val pokemonEntries = result.data!!.pokemon!!.map {
+                        Pokemon(
+                            id = it.pokemon.getId(),
+                            name = it.pokemon.name,
+                            imageUrl = getPokemonImage(it.pokemon.getId())
+                        )
+                    }
+
+                    val pokemonTypes = pokemonEntries.map {
+                        async { repository.getPokemonTypes(it.id) }
+                    }.awaitAll()
+
+                    val updatedPokemonEntries = pokemonEntries.zip(pokemonTypes) { pokemonEntry, types ->
+                        pokemonEntry.copy(type = types)
+                    }
+
                     _pokemonListState.update { screenState ->
                         screenState.copy(
-                            data = result.data!!.pokemon!!.map {
-                                Pokemon(
-                                    id = it.pokemon.getId(),
-                                    name = it.pokemon.name,
-                                    imageUrl = getPokemonImage(it.pokemon.getId())
-                                )
-                            },
+                            data = updatedPokemonEntries,
                             isLoading = false,
                             loadError = "",
                             isDataFiltered = true
@@ -210,8 +202,6 @@ class PokemonViewModel @Inject constructor(
                 }
             }
         }
-
-
     }
 
     fun calcDominantColor(drawable: Drawable, onFinish: (Color, Color) -> Unit) {
@@ -223,10 +213,6 @@ class PokemonViewModel @Inject constructor(
                 onFinish(Color(colorValue), Color(darkerColor))
             }
         }
-    }
-
-    suspend fun getPokemonDetails(id: String): Resource<PokemonDetails> {
-        return repository.getPokemonDetails(id)
     }
 }
 

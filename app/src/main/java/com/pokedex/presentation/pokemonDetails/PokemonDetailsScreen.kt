@@ -1,21 +1,13 @@
 package com.pokedex.presentation.pokemonDetails
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,17 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,229 +32,195 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.core.graphics.ColorUtils
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
-import com.mxalbert.sharedelements.LocalSharedElementsRootScope
-import com.mxalbert.sharedelements.SharedElement
-import com.mxalbert.sharedelements.SharedMaterialContainer
 import com.pokedex.R
-import com.pokedex.domain.model.Pokemon
-import com.pokedex.presentation.pokemonList.PokemonUiEvent
-import com.pokedex.presentation.pokemonList.PokemonViewModel
+import com.pokedex.domain.model.PokemonDetails
 import com.pokedex.ui.theme.clashDisplayFont
 import com.pokedex.ui.theme.interFont
-import com.pokedex.util.parseTypeToDrawable
+import com.pokedex.ui.theme.sfProFont
+import com.pokedex.util.parseTypeToColor
+import java.util.Locale
 
 @Composable
 fun PokemonDetailsScreen(
-    pokemonId: String,
-    viewModel: PokemonViewModel = hiltViewModel()
+    onNavigate: (String) -> Unit,
+    onColorChange: (Color) -> Unit,
+    viewModel: PokemonDetailsViewModel = hiltViewModel()
 ) {
-    val defaultDominantColor = MaterialTheme.colorScheme.surface
+    val state by viewModel.pokemonDetailsState.collectAsStateWithLifecycle()
+    val pokemonDetails = state.pokemon
 
-    var dominantColor by remember {
-        mutableStateOf(defaultDominantColor)
-    }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    val SWIPE_THRESHOLD = (LocalContext.current.resources.displayMetrics.widthPixels * 0.1).toFloat()
 
-    val softerColor = ColorUtils.blendARGB(dominantColor.toArgb(), Color.White.toArgb(), 0.4f)
-    var isInfoClicked by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .statusBarsPadding()
-        .background(Color(softerColor))
-    ) {
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.Top
+    if (state.isLoading) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 60.dp)
         ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(95.dp),
+                color = Color(0xFFE4A121),
+                strokeWidth = 5.dp
+            )
+        }
+    } else {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .background(Color.Transparent).pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        offsetX = 0f
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
 
-            IconButton(
-                onClick = {},
-                modifier = Modifier
-                    .padding(start = 12.dp, top = 41.dp)
-                    .background(
-                        color = Color(0xFF373737),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = null,
-                    tint = Color(0xFFBABABA)
+                        val (x) = dragAmount
+                        when {
+                            x > 0 -> {
+                                offsetX += dragAmount.x
+                                if (offsetX > SWIPE_THRESHOLD) {
+                                    onNavigate("previous")
+                                    offsetX = 0f
+                                }
+                            }
+                            x < 0 -> {
+                                offsetX += dragAmount.x
+                                if (offsetX < -SWIPE_THRESHOLD) {
+                                    onNavigate("next")
+                                    offsetX = 0f
+                                }
+                            }
+                        }
+                    }
                 )
             }
-
+        ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Top
             ) {
-
-                Text(
-                    text = "",
-                    color = Color.Black,
-                    fontFamily = clashDisplayFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 33.sp
-                )
-
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.pokeball_bg),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(330.dp)
-                            .padding(top = 65.dp)
-                            .alpha(0.6f)
+                    Text(
+                        text = pokemonDetails.name.replaceFirstChar { char ->
+                            if (char.isLowerCase()) char.titlecase(Locale.ROOT) else char.toString()
+                        },
+                        color = Color.Black,
+                        fontFamily = sfProFont,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 28.sp
                     )
 
-            /*        SubcomposeAsyncImage(
-                        modifier = Modifier
-                            .size(250.dp)
-                            .align(Alignment.Center),
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(item.imageUrl)
-                            .build(),
-                        contentDescription = null,
-                        onSuccess = {
-                            viewModel.calcDominantColor(it.result.drawable) { color, _ ->
-                                dominantColor = color
-                            }
-                        }
-                    )*/
-                }
-
-                AnimatedContent(
-                    targetState = isInfoClicked,
-                    label = "Animated Content"
-                ) { isClicked ->
-                    when (isClicked) {
-                        false -> {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.back_icon),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) {
-                                        }
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = pokemonDetails.id.toString().padStart(3, '0'),
+                            color = Color.White,
+                            fontFamily = clashDisplayFont,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 115.sp,
+                            style = TextStyle(
+                                shadow = Shadow(
+                                    color = Color.Gray,
+                                    offset = Offset(x = 2f, y = 3f),
+                                    blurRadius = 0.8f
                                 )
+                            ),
+                            modifier = Modifier
+                                .alpha(0.9f)
+                                .align(Alignment.TopCenter)
+                        )
 
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .padding(top = 15.dp)
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) {
-                                            isInfoClicked = true
-                                        },
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                ) {
-                                    Pulsating {
-                                    /*    Image(
-                                            painter = painterResource(id = R.drawable.pokeball),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(65.dp)
-                                        )*/
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 81.dp)
+                                .fillMaxSize()
+                                .zIndex(-1f),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.pokeball_bg),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .padding(top = 54.dp)
+                                    .fillMaxWidth()
+                                    .height(263.dp)
+                                    .alpha(0.7f)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 82.dp)
+                                .fillMaxSize()
+                                .zIndex(2f),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+
+                            SubcomposeAsyncImage(
+                                modifier = Modifier
+                                    .padding(top = 15.dp)
+                                    .size(259.dp)
+                                    .align(Alignment.TopCenter),
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(pokemonDetails.imageUrl)
+                                    .build(),
+                                contentDescription = null,
+                                onSuccess = {
+                                    viewModel.calcDominantColor(it.result.drawable) { color, _ ->
+                                        val softerColor = ColorUtils.blendARGB(color.toArgb(), Color.White.toArgb(), 0.3f)
+                                        onColorChange(Color(softerColor))
                                     }
-
-                                    Spacer(modifier = Modifier.height(20.dp))
-
-                                    Text(
-                                        text = "Click to View Info",
-                                        color = Color(0xFFE4A121),
-                                        fontFamily = interFont,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 15.sp
-                                    )
                                 }
-
-                                Image(
-                                    painter = painterResource(id = R.drawable.next_icon),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) {
-                                        }
-                                )
-                            }
+                            )
                         }
 
-                        true -> {
-//                            PokemonDetailsStateWrapper(pokemonInfo = pokemonInfo)
+                        Box(
+                            contentAlignment = Alignment.BottomCenter,
+                            modifier = Modifier
+                                .padding(top = 332.dp)
+                                .matchParentSize()
+                                .background(
+                                    Color.White,
+                                    RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                                )
+                                .zIndex(0f)
+                        ) {
+                            PokemonDetailsSection(pokemonDetails)
                         }
 
                     }
                 }
-
-
-
-
             }
-
-
-
-            /*        if(pokemonInfo is Resource.Success) {
-                        pokemonInfo.data?.sprites?.let { sprites ->
-                            SharedMaterialContainer(
-                                key = sprites.frontDefault,
-                                screenKey = DetailsScreen,
-                                shape = RoundedCornerShape(25.dp),
-                                color = Color.Transparent,
-                                transitionSpec = FadeOutTransitionSpec
-                            ) {
-                                val scope = LocalSharedElementsRootScope.current!!
-
-                                AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(sprites.frontDefault)
-                                        .build(),
-                                    contentDescription = pokemonInfo.data.name,
-                                    onSuccess = {
-                                        viewModel.calcDominantColor(it.result.drawable) { color ->
-                                            dominantColor = color
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(250.dp)
-                                        .align(Alignment.CenterHorizontally)
-                                        .clickable(enabled = !scope.isRunningTransition) {
-                                            scope.changeUser(-1, pokemonList)
-                                        }
-                                )
-                            }
-                        }
-                    }*/
         }
     }
 
@@ -284,41 +241,145 @@ fun PokemonDetailsSection(
 }*/
 
 @Composable
+fun PokemonDetailsSection(
+    pokemonDetails: PokemonDetails
+) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        PokemonTypeSection(types = pokemonDetails.type)
+
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 10.dp)
+                .padding(top = 20.dp)
+                .fillMaxWidth()
+                .height(80.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Text(
+                text = addLineBreakToCategory(pokemonDetails.category),
+                color = Color.Black,
+                fontFamily = interFont,
+                fontWeight = FontWeight.Medium,
+                fontSize = 17.sp,
+                textAlign = TextAlign.Center
+            )
+
+            Box(modifier = Modifier
+                .width(2.5.dp)
+                .height(65.dp)
+                .background(Color(0x4FD3D3D3))
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = "${pokemonDetails.weight} lbs.",
+                    color = Color.Black,
+                    fontFamily = interFont,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 17.sp
+                )
+
+                Text(
+                    text = "Weight",
+                    color = Color(0xFF7E7E7E),
+                    fontFamily = interFont,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 16.sp
+                )
+            }
+
+            Box(modifier = Modifier
+                .width(2.5.dp)
+                .height(65.dp)
+                .background(Color(0x4FD3D3D3))
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = "${pokemonDetails.height}'",
+                    color = Color.Black,
+                    fontFamily = interFont,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 17.sp
+                )
+
+                Text(
+                    text = "Height",
+                    color = Color(0xFF7E7E7E),
+                    fontFamily = interFont,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 16.sp
+                )
+            }
+        }
+
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 19.dp, vertical = 16.dp)
+        ) {
+            val description = pokemonDetails.flavorText.replace("\n", " ")
+
+            Text(
+                text = description,
+                color = Color(0xFF7E7E7E),
+                fontFamily = interFont,
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp
+            )
+
+            Icon(
+                painter = painterResource(id = R.drawable.down_arrow),
+                contentDescription = null,
+                tint = Color(0xEEA5A5A5),
+                modifier = Modifier
+                    .size(33.dp)
+                    .align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+@Composable
 fun PokemonTypeSection(
     types: List<String?>
 ) {
     Row(
         modifier = Modifier
+            .padding(start = if (types.size == 1) 20.dp else 10.dp)
+            .padding(top = 30.dp)
             .fillMaxWidth()
-            .padding(horizontal = 25.dp)
-            .background(
-                color = Color(0x28FFFFFF),
-                shape = RoundedCornerShape(15.dp)
-            )
-            .padding(bottom = 15.dp)
-        ,
+            .height(32.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(
-            space = 8.dp,
+            space = 11.dp,
             alignment = Alignment.CenterHorizontally
         )
     ) {
-        for(type in types) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+        for (type in types) {
+            Box(
+                modifier = Modifier
+                    .width(96.dp)
+                    .height(30.dp)
+                    .background(color = parseTypeToColor(type!!), shape = CircleShape)
+                    .align(Alignment.CenterVertically),
+                contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(id = parseTypeToDrawable(type!!)),
-                    contentDescription = type,
-                    modifier = Modifier.size(65.dp)
-                )
-
                 Text(
                     text = type.uppercase(),
-                    fontFamily = clashDisplayFont,
+                    color = Color.White,
+                    fontFamily = sfProFont,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    color = Color.White
+                    fontSize = 16.sp
                 )
             }
         }
@@ -377,6 +438,7 @@ fun PokemonStat(
             )
         }
     }
+
 }
 
 /*
@@ -415,7 +477,6 @@ fun PokemonBaseStats(
 }
 */
 
-
 /*
 @Composable
 fun PokemonDetailsStateWrapper(
@@ -444,24 +505,14 @@ fun PokemonDetailsStateWrapper(
 }
 */
 
-
-
-@Composable
-fun Pulsating(pulseFraction: Float = 1.2f, content: @Composable () -> Unit) {
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = pulseFraction,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = ""
-    )
-
-    Box(modifier = Modifier.scale(scale)) {
-        content()
+private fun addLineBreakToCategory(category: String): String {
+    val words = category.split(" ")
+    val wordCount = words.size
+    return if (wordCount <= 2) {
+        category.replaceFirst(" ", "\n")
+    } else {
+        val index = category.lastIndexOf(" ")
+        category.substring(0, index) + "\n" + category.substring(index + 1)
     }
 }
 

@@ -2,18 +2,26 @@ package com.pokedex.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.pokedex.presentation.pokemonDetails.PokemonDetailsScreen
 import com.pokedex.presentation.pokemonList.PokemonListScreen
-import com.pokedex.presentation.searchByType.SearchByTypeScreen
+import com.pokedex.presentation.filterPokemons.FilterScreen
+import com.pokedex.util.Screen
 
 @Composable
 fun NavGraph(
@@ -22,9 +30,12 @@ fun NavGraph(
     onTypeIdChange: (String) -> Unit,
     searchQuery: String
 ) {
+    val localFocusManager = LocalFocusManager.current
+    var listIdsOfPokemonByType by remember { mutableStateOf(emptyList<String>()) }
+
     NavHost(
         navController = navController,
-        startDestination = Routes.POKEMON_LIST + "?typeId={typeId}",
+        startDestination = Screen.PokemonList.route,
         enterTransition = {
             fadeIn(animationSpec = tween(400)).plus(
                 slideIntoContainer(
@@ -59,7 +70,7 @@ fun NavGraph(
         }
     ) {
         composable(
-            route = Routes.POKEMON_LIST + "?typeId={typeId}",
+            route = Screen.PokemonList.route,
             arguments = listOf(
                 navArgument(name = "typeId") {
                     type = NavType.StringType
@@ -73,17 +84,89 @@ fun NavGraph(
             onTypeIdChange(typeId!!)
 
             PokemonListScreen(
+                navController = navController,
                 onColorChange = { onColorChange(it) },
-                searchQuery = searchQuery
+                searchQuery = searchQuery,
+                onItemClick = { pokemonId, listIdsPokemonByType ->
+                    localFocusManager.clearFocus()
+                    listIdsOfPokemonByType = listIdsPokemonByType
+                    navController.navigate(Screen.PokemonDetails.passPokemonId(pokemonId))
+                }
             )
         }
 
-        composable(Routes.SEARCH_BY_TYPE) {
+        composable(Screen.Filter.route) {
             BackHandler(true) {}
-            SearchByTypeScreen { typeId ->
-                navController.navigate(Routes.POKEMON_LIST + "?typeId=${typeId}")
+            onColorChange(Color.White)
+
+            FilterScreen { typeId ->
+                navController.navigate(Screen.PokemonList.passTypeId(typeId))
             }
         }
 
+        composable(
+            route = Screen.PokemonDetails.route,
+            arguments = listOf(
+                navArgument(name = "pokemonId") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            ),
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = 280,
+                        easing = LinearEasing
+                    )
+                )
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = 250,
+                        easing = LinearEasing
+                    )
+                )
+            }
+        ) { backStackEntry ->
+            BackHandler(true) {}
+            val pokemonId = backStackEntry.arguments?.getString("pokemonId")!!
+
+            PokemonDetailsScreen(
+                onNavigate = {
+                    if (it == "previous") {
+                        val previousIndex = if (listIdsOfPokemonByType.isEmpty()) {
+                             (pokemonId.toInt() - 1).coerceAtLeast(1).toString()
+                        } else {
+                            val index = listIdsOfPokemonByType.indexOf(listIdsOfPokemonByType.find { id -> id == pokemonId })
+                            listIdsOfPokemonByType.getOrNull(index - 1) ?: index.toString()
+                        }
+
+                        navController.navigate(Screen.PokemonDetails.passPokemonId(previousIndex)) {
+                            popUpTo(Screen.PokemonDetails.route) {
+                                inclusive = true
+                            }
+                        }
+                    } else {
+                        val nextIndex = if (listIdsOfPokemonByType.isEmpty()) {
+                            (pokemonId.toInt() + 1).toString()
+                        } else {
+                            val index = listIdsOfPokemonByType.indexOf(listIdsOfPokemonByType.find { id -> id == pokemonId })
+                            listIdsOfPokemonByType.getOrNull(index + 1) ?: index.toString()
+                        }
+                        navController.navigate(Screen.PokemonDetails.passPokemonId(nextIndex)) {
+                            popUpTo(Screen.PokemonDetails.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                },
+                onColorChange = {
+                    onColorChange(it)
+                }
+            )
+        }
     }
 }

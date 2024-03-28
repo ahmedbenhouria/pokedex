@@ -23,7 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.pokedex.navigation.NavGraph
-import com.pokedex.navigation.Routes
+import com.pokedex.util.Screen
 import com.pokedex.presentation.parentScaffold.components.CustomTopAppBar
 import kotlinx.coroutines.delay
 
@@ -44,7 +44,7 @@ fun ParentScaffold(
         targetValue = color,
         label = "bgColor",
         animationSpec = tween(
-            durationMillis = 40,
+            durationMillis = 20,
             easing = LinearEasing
         )
     )
@@ -65,13 +65,17 @@ fun ParentScaffold(
     }
 
     if (searchQuery.isNotEmpty()) {
-        if (navController.currentDestination?.route == Routes.SEARCH_BY_TYPE) {
+        if (navController.currentDestination?.route == Screen.Filter.route) {
             LaunchedEffect(Unit) {
                 delay(100)
                 navController.popBackStack()
                 isBtnVisible = false
             }
         }
+    }
+
+    if (navController.currentDestination?.route == Screen.PokemonDetails.route) {
+        isBtnVisible = true
     }
 
     Scaffold(
@@ -86,21 +90,31 @@ fun ParentScaffold(
                 onSearchQueryChange = { viewModel.onSearchQueryChanged(it) },
                 onSearchBarClick = {
                     if (typeId.isEmpty()) {
-                        if (navController.currentDestination?.route != Routes.SEARCH_BY_TYPE) {
-                            navController.navigate(Routes.SEARCH_BY_TYPE)
-                            isBtnVisible = it
+                        when (navController.currentDestination?.route) {
+                            Screen.PokemonList.route -> {
+                                isBtnVisible = it
+                                navController.navigate(Screen.Filter.route)
+                            }
+                            Screen.PokemonDetails.route -> {
+                                isBtnVisible = false
+                                viewModel.onBgColorChanged(Color.White)
+                                navController.popBackStack()
+                            }
                         }
                     }
+
                 },
                 onBackBtnClick = {
                     viewModel.onBgColorChanged(Color.White)
                     viewModel.onSearchQueryChanged("")
                     navController.popBackStack()
 
-                    if (navController.currentDestination?.route != Routes.SEARCH_BY_TYPE && typeId.isNotEmpty()) {
-                        typeId = ""
-                    }
-                    if (typeId.isEmpty()) {
+                    val type = navController
+                        .currentBackStackEntry!!
+                        .arguments!!
+                        .getString("typeId") ?: ""
+
+                    if (type.isEmpty() && navController.currentDestination?.route != Screen.Filter.route) {
                         isBtnVisible = false
                     }
                 }
