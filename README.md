@@ -14,7 +14,7 @@ https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/6cd0b7d8-29c0-
   </tr>
   <tr align="center">
      <td>Filter Screen</td>
-     <td>Pokemon By Type List Screen</td>
+     <td>Pokemon List By Type Screen</td>
   </tr>
   <tr>
     <td><img src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/594bc80f-1de9-485e-8f20-97257309d50c" width=270 height=560></td>
