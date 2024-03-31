@@ -5,7 +5,7 @@ https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/6cd0b7d8-29c0-
 # App Screenshots
 <table align="center">
   <tr align="center">
-     <td">Pokemon List Screen</td>
+     <td>Pokemon List Screen</td>
      <td>Pokemon Details Screen</td>
   </tr>
   <tr>
