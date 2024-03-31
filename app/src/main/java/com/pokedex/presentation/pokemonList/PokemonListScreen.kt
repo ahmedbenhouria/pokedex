@@ -1,5 +1,11 @@
 package com.pokedex.presentation.pokemonList
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,19 +55,16 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.pokedex.R
 import com.pokedex.domain.model.Pokemon
-import com.pokedex.domain.model.PokemonDetails
-import com.pokedex.util.Screen
+import com.pokedex.navigation.Screen
 import com.pokedex.presentation.filterPokemons.Filter
-import com.pokedex.presentation.filterPokemons.typesFilteringList
+import com.pokedex.presentation.filterPokemons.typeFilterList
 import com.pokedex.presentation.pokemonList.components.LoadingAnimation
 import com.pokedex.presentation.pokemonList.components.RetrySection
 import com.pokedex.ui.theme.clashDisplayFont
 import com.pokedex.ui.theme.interFont
 import com.pokedex.ui.theme.sfProFont
-import com.pokedex.util.Resource
 import com.pokedex.util.parseTypeToColor
 import com.pokedex.util.parseTypeToDrawable
-import timber.log.Timber
 import java.util.Locale
 
 @Composable
@@ -81,7 +84,7 @@ fun PokemonListScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         if (typeId.isNotEmpty()) {
-            typesFilteringList.find { it.id == typeId }?.let {
+            typeFilterList.find { it.id == typeId }?.let {
                 TypeBarSection(
                     type = it,
                     onColorChange = { color ->
@@ -99,7 +102,11 @@ fun PokemonListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 RetrySection(error = state.loadError) {
-                    viewModel.loadPokemonPaginated()
+                    if (typeId.isNotEmpty()) {
+                        viewModel.getPokemonListByType(typeId)
+                    } else {
+                        viewModel.loadPokemonPaginated()
+                    }
                 }
             }
         } else {
@@ -118,7 +125,13 @@ fun PokemonListScreen(
                     onColorChange(color)
                     onItemClick(id, if (typeId.isNotEmpty()) state.data.map { it.id } else emptyList())
                 },
-                loadPokemonPaginated = { viewModel.loadPokemonPaginated() }
+                loadPokemonPaginated = {
+                    if (typeId.isNotEmpty()) {
+                        viewModel.getPokemonListByType(typeId)
+                    } else {
+                        viewModel.loadPokemonPaginated()
+                    }
+                }
             )
         }
     }
@@ -166,45 +179,71 @@ private fun PokemonListSection(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Top
         ) {
-            LazyVerticalGrid(
-                state = listState,
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                columns = GridCells.Fixed(2),
-                verticalArrangement = Arrangement.spacedBy(17.dp),
-                horizontalArrangement = Arrangement.spacedBy(13.dp)
-            ) {
-                val itemCount = if (state.data.size % 2 == 0) {
-                    state.data.size
-                } else {
-                    state.data.size + 1
-                }
-                items(count = state.data.size, key = { it }) { item ->
-                    if (item >= itemCount - 1 && !state.endReached && !state.isLoading && !state.isDataFiltered) {
-                        LaunchedEffect(key1 = true) {
-                            loadPokemonPaginated()
-                        }
-                    }
-                    PokemonItem(
-                        item = state.data[item],
-                        onItemClick = { id, color ->
-                            onItemClick(id, color)
-                        }
-                    )
-                }
-            }
-
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 60.dp)
             ) {
-                if(state.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(90.dp),
-                        color = Color(0xFFE4A121),
-                        strokeWidth = 5.dp
-                    )
+                LazyVerticalGrid(
+                    state = listState,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    columns = GridCells.Fixed(2),
+                    verticalArrangement = Arrangement.spacedBy(17.dp),
+                    horizontalArrangement = Arrangement.spacedBy(13.dp)
+                ) {
+                    val itemCount = if (state.data.size % 2 == 0) {
+                        state.data.size
+                    } else {
+                        state.data.size + 1
+                    }
+                    items(count = state.data.size, key = { it }) { item ->
+                        if (item >= itemCount - 1 && !state.endReached && !state.isLoading && !state.isDataFiltered) {
+                            LaunchedEffect(key1 = true) {
+                                loadPokemonPaginated()
+                            }
+                        }
+                        PokemonItem(
+                            item = state.data[item],
+                            onItemClick = { id, color ->
+                                onItemClick(id, color)
+                            }
+                        )
+                    }
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 60.dp)
+                ) {
+                    if (state.isLoading && state.data.isEmpty()) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(90.dp),
+                            color = Color(0xFFE4A121),
+                            strokeWidth = 5.dp
+                        )
+                    }
+                }
+
+                this@Column.AnimatedVisibility(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    visible = state.isLoading && state.data.isNotEmpty(),
+                    enter = slideInVertically { 200 }.plus(fadeIn(animationSpec = tween(120))),
+                    exit = slideOutVertically { 200 }.plus(fadeOut(animationSpec = tween(120))),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 21.dp)
+                            .size(38.dp)
+                            .background(color = Color(0xFF3D2A04), shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(21.dp),
+                            color = Color(0xFFE4A121),
+                            strokeWidth = 2.8.dp
+                        )
+                    }
                 }
             }
         }
@@ -345,53 +384,6 @@ fun PokemonItem(
 }
 
 @Composable
-fun PokemonTypesSection(
-    pokemonDetails: Resource<PokemonDetails>
-) {
-    when (pokemonDetails) {
-        is Resource.Success -> {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                for(type in pokemonDetails.data!!.type) {
-                    Box(
-                        modifier = Modifier
-                            .size(17.dp)
-                            .clip(CircleShape)
-                            .background(parseTypeToColor(type!!)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = parseTypeToDrawable(type)),
-                            contentDescription = type,
-                            modifier = Modifier.size(10.5.dp)
-                        )
-                    }
-                }
-            }
-        }
-        is Resource.Error -> {
-            Timber.tag("ERROR TYPES").e(pokemonDetails.message)
-        }
-        is Resource.Loading -> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = Color(0xFFE4A121),
-                    strokeWidth = 2.dp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun TypeBarSection(
     type: Filter,
     onColorChange: (Color) -> Unit
@@ -444,12 +436,3 @@ fun TypeBarSection(
     }
 }
 
-/*
-@Preview (showBackground = true)
-@Composable
-fun PokemonFilteredListSectionPreview() {
-    PokedexAppTheme {
-        PokemonFilteredListSection(paddingValues = PaddingValues())
-    }
-}
-*/

@@ -23,7 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.pokedex.navigation.NavGraph
-import com.pokedex.util.Screen
+import com.pokedex.navigation.Screen
 import com.pokedex.presentation.parentScaffold.components.CustomTopAppBar
 import kotlinx.coroutines.delay
 
@@ -60,9 +60,7 @@ fun ParentScaffold(
         )
     }
 
-    var isBtnVisible by remember {
-        mutableStateOf(false)
-    }
+    var isBtnVisible by remember { mutableStateOf(false) }
 
     if (searchQuery.isNotEmpty()) {
         if (navController.currentDestination?.route == Screen.Filter.route) {
@@ -123,8 +121,8 @@ fun ParentScaffold(
     ) { paddingValues ->
         Box(modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)) {
-
+            .padding(paddingValues)
+        ) {
             NavGraph(
                 navController = navController,
                 onColorChange = { viewModel.onBgColorChanged(it) },

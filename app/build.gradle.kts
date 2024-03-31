@@ -58,7 +58,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
 
     // Compose
-    val composeVersion = "2024.02.02"
+    val composeVersion = "2024.03.00"
     implementation(platform("androidx.compose:compose-bom:$composeVersion"))
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.runtime:runtime-livedata")
@@ -88,9 +88,6 @@ dependencies {
 
     // System UI controller
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
-
-    // Shared Elements
-    implementation("com.mxalbert.sharedelements:shared-elements:0.1.0-SNAPSHOT")
 
     // Dagger Hilt
     implementation("com.google.dagger:hilt-android:2.50")

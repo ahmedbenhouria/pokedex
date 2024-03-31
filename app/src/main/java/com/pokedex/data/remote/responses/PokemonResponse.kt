@@ -12,5 +12,7 @@ data class PokemonResponse(
     @SerializedName("weight")
     val weight: Int,
     @SerializedName("types")
-    val types: List<Type>
+    val types: List<Type>,
+    @SerializedName("species")
+    val species: Species
 )

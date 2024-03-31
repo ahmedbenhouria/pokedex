@@ -1,4 +1,4 @@
-package com.pokedex.util
+package com.pokedex.navigation
 
 sealed class Screen(
     val route: String
