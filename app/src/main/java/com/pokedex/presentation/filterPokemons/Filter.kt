@@ -5,7 +5,7 @@ data class Filter(
     val name: String
 )
 
-val typesFilteringList = listOf(
+val typeFilterList = listOf(
     Filter(id = "1", name = "normal"),
     Filter(id = "10", name = "fire"),
     Filter(id = "11", name = "water"),
@@ -16,7 +16,7 @@ val typesFilteringList = listOf(
     Filter(id = "14", name = "psychic")
 )
 
-val sortFilteringList = listOf(
+val sortFilterList = listOf(
     Filter(id = "1", name = "A - Z"),
     Filter(id = "2", name = "Heaviest -\nLightest"),
     Filter(id = "3", name = "Lightest -\nHeaviest"),

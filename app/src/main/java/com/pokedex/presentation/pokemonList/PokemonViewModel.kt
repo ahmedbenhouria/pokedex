@@ -148,7 +148,7 @@ class PokemonViewModel @Inject constructor(
         }
     }
 
-    private fun getPokemonListByType(id: String) {
+    fun getPokemonListByType(id: String) {
         viewModelScope.launch {
             _pokemonListState.update {
                 it.copy(

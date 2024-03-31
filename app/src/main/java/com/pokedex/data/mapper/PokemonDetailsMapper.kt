@@ -15,11 +15,11 @@ object PokemonDetailsMapper {
             id = pokemonResponse.id,
             name = pokemonResponse.name,
             imageUrl = getPokemonImage(pokemonResponse.id.toString()),
-            category = pokemonSpeciesResponse.getGenusByLanguage("en")!!,
+            category = pokemonSpeciesResponse.getGenusByLanguage("en") ?: "Not Found",
             height = pokemonResponse.height,
             weight = pokemonResponse.weight,
             type = pokemonResponse.types.map { it.type.name },
-            flavorText = pokemonSpeciesResponse.getFlavorText("en","red") ?: pokemonSpeciesResponse.getRandomFlavorText("en")!!
+            flavorText = pokemonSpeciesResponse.getFlavorText("en","red") ?: pokemonSpeciesResponse.getRandomFlavorText("en") ?: ""
         )
     }
 }

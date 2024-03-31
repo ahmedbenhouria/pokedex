@@ -9,6 +9,8 @@ import com.pokedex.domain.repository.PokemonRepository
 import com.pokedex.util.Constants.PAGE_SIZE
 import com.pokedex.util.Resource
 import dagger.hilt.android.scopes.ActivityScoped
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 
 @ActivityScoped
@@ -32,18 +34,25 @@ class PokemonRepositoryImpl @Inject constructor(private val api: PokeApi) : Poke
       return Resource.Success(response)
    }
 
-   override suspend fun getPokemonDetails(id: String): Resource<PokemonDetails> {
-      val response = try {
-         val pokemon = api.getPokemonDetails(id)
-         val pokemonSpecies = api.getPokemonSpecies(id)
-         PokemonDetailsMapper.buildFrom(
-            pokemonResponse = pokemon,
-            pokemonSpeciesResponse = pokemonSpecies
+   override suspend fun getPokemonDetails(id: String): Resource<PokemonDetails> = coroutineScope {
+      val pokemonResponse = async {
+         api.getPokemonDetails(id)
+      }.await()
+
+      val pokemonSpeciesResponse = async {
+         val pokemonId = pokemonResponse.species.getId()
+         api.getPokemonSpecies(pokemonId)
+      }.await()
+
+      return@coroutineScope try {
+         val response = PokemonDetailsMapper.buildFrom(
+            pokemonResponse = pokemonResponse,
+            pokemonSpeciesResponse = pokemonSpeciesResponse
          )
+         Resource.Success(response)
       } catch(e: Exception) {
-         return Resource.Error("An unknown error occurred.")
+         Resource.Error("An unknown error occurred.")
       }
-      return Resource.Success(response)
    }
 
    override suspend fun getPokemonTypes(id: String): List<String> {

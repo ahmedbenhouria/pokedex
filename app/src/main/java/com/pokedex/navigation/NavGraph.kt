@@ -21,7 +21,6 @@ import androidx.navigation.navArgument
 import com.pokedex.presentation.pokemonDetails.PokemonDetailsScreen
 import com.pokedex.presentation.pokemonList.PokemonListScreen
 import com.pokedex.presentation.filterPokemons.FilterScreen
-import com.pokedex.util.Screen
 
 @Composable
 fun NavGraph(
@@ -31,7 +30,7 @@ fun NavGraph(
     searchQuery: String
 ) {
     val localFocusManager = LocalFocusManager.current
-    var listIdsOfPokemonByType by remember { mutableStateOf(emptyList<String>()) }
+    var pokemonByTypeListIds  by remember { mutableStateOf(emptyList<String>()) }
 
     NavHost(
         navController = navController,
@@ -87,9 +86,9 @@ fun NavGraph(
                 navController = navController,
                 onColorChange = { onColorChange(it) },
                 searchQuery = searchQuery,
-                onItemClick = { pokemonId, listIdsPokemonByType ->
+                onItemClick = { pokemonId, listIds ->
                     localFocusManager.clearFocus()
-                    listIdsOfPokemonByType = listIdsPokemonByType
+                    pokemonByTypeListIds = listIds
                     navController.navigate(Screen.PokemonDetails.passPokemonId(pokemonId))
                 }
             )
@@ -136,29 +135,32 @@ fun NavGraph(
 
             PokemonDetailsScreen(
                 onNavigate = {
-                    if (it == "previous") {
-                        val previousIndex = if (listIdsOfPokemonByType.isEmpty()) {
-                             (pokemonId.toInt() - 1).coerceAtLeast(1).toString()
-                        } else {
-                            val index = listIdsOfPokemonByType.indexOf(listIdsOfPokemonByType.find { id -> id == pokemonId })
-                            listIdsOfPokemonByType.getOrNull(index - 1) ?: index.toString()
-                        }
+                    when (it) {
+                        "previous" -> {
+                            val previousIndex = if (pokemonByTypeListIds.isEmpty()) {
+                                (pokemonId.toInt() - 1).coerceAtLeast(1).toString()
+                            } else {
+                                val index = pokemonByTypeListIds.indexOf(pokemonByTypeListIds.find { id -> id == pokemonId })
+                                pokemonByTypeListIds.getOrNull(index - 1) ?: index.toString()
+                            }
 
-                        navController.navigate(Screen.PokemonDetails.passPokemonId(previousIndex)) {
-                            popUpTo(Screen.PokemonDetails.route) {
-                                inclusive = true
+                            navController.navigate(Screen.PokemonDetails.passPokemonId(previousIndex)) {
+                                popUpTo(Screen.PokemonDetails.route) {
+                                    inclusive = true
+                                }
                             }
                         }
-                    } else {
-                        val nextIndex = if (listIdsOfPokemonByType.isEmpty()) {
-                            (pokemonId.toInt() + 1).toString()
-                        } else {
-                            val index = listIdsOfPokemonByType.indexOf(listIdsOfPokemonByType.find { id -> id == pokemonId })
-                            listIdsOfPokemonByType.getOrNull(index + 1) ?: index.toString()
-                        }
-                        navController.navigate(Screen.PokemonDetails.passPokemonId(nextIndex)) {
-                            popUpTo(Screen.PokemonDetails.route) {
-                                inclusive = true
+                        "next" -> {
+                            val nextIndex = if (pokemonByTypeListIds.isEmpty()) {
+                                (pokemonId.toInt() + 1).toString()
+                            } else {
+                                val index = pokemonByTypeListIds.indexOf(pokemonByTypeListIds.find { id -> id == pokemonId })
+                                pokemonByTypeListIds.getOrNull(index + 1) ?: index.toString()
+                            }
+                            navController.navigate(Screen.PokemonDetails.passPokemonId(nextIndex)) {
+                                popUpTo(Screen.PokemonDetails.route) {
+                                    inclusive = true
+                                }
                             }
                         }
                     }

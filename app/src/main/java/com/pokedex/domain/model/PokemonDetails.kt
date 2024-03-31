@@ -9,14 +9,4 @@ data class PokemonDetails(
     val weight: Int = 0,
     val type: List<String?> = emptyList(),
     val flavorText: String = ""
-) {
- /*   fun getMetricHeight(): String {
-        val x = height * 10
-        return "$x cm"
-    }
-
-    fun getMetricWeight (): String {
-        val x = weight.toDouble() / 100.0
-        return "$x kg"
-    }*/
-}
+)
