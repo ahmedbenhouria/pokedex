@@ -1,27 +1,10 @@
 # Pokedex 
 Pokedex demonstrates modern Android development with Hilt, Coroutines, Retrofit, Flow, Jetpack Libraries and Compose Navigation based on MVVM architecture and adhering to clean architecture principles.<br><br>
 The UI design of the app was inspired by a YouTube tutorial; however, due to the unavailability of the Figma design, I attempted to replicate it precisely as demonstrated in the video. For reference, please see: [What if the Pokédex became a mobile app? | Design UI with me](https://www.youtube.com/watch?v=Kjun9QBr82Y).
+# App Screenshots
+<img width="1600" alt="mockup_pokedex" src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/bcd0f482-18f3-44f4-8ca3-0cdfaa79177a">
 # App Demo
 https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/6cd0b7d8-29c0-4757-b38e-df9b9a79f7bd
-# App Screenshots
-<table align="center">
-  <tr align="center">
-     <td>Pokemon List Screen</td>
-     <td>Pokemon Details Screen</td>
-  </tr>
-  <tr>
-    <td><img src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/6bcdce5e-9a73-45e6-ac3a-426a67d76cda" width=270 height=560></td>
-    <td><img src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/0c5d1bba-d73a-4ecd-9dfb-c5fea017da61" width=270 height=560></td>
-  </tr>
-  <tr align="center">
-     <td>Filter Screen</td>
-     <td>Pokemon List By Type Screen</td>
-  </tr>
-  <tr>
-    <td><img src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/594bc80f-1de9-485e-8f20-97257309d50c" width=270 height=560></td>
-    <td><img src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/3c44eb7b-3dec-4cf0-9e56-91a6d1a5819e" width=270 height=560></td>
-  </tr>
- </table>
 
 
 
