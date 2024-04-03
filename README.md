@@ -4,8 +4,7 @@ The UI design of the app was inspired by a YouTube tutorial; however, due to the
 # App Demo
 https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/6cd0b7d8-29c0-4757-b38e-df9b9a79f7bd
 # App Screenshots
-<img alt="mockup_pokedex" src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/2a6d04b4-e29d-4141-9f30-9d95b4e1b266" width="1600">
-
+<img width="1600" alt="Mockup_pokedex" src="https://github.com/ahmedbenhouria/pokedex-android/assets/76657810/e54a9247-32ee-4891-a5ed-23e380f11b76">
 
 
 
