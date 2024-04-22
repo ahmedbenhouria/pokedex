@@ -1,4 +1,4 @@
-# Pokedex 
+# Overview 🌐
 Pokedex demonstrates modern Android development with Hilt, Coroutines, Retrofit, Flow, Jetpack Libraries and Compose Navigation based on MVI architecture and adhering to clean architecture principles.<br><br>
 The UI design of the app was inspired by a YouTube tutorial; however, due to the unavailability of the Figma design, I attempted to replicate it precisely as demonstrated in the video. For reference, please see: [What if the Pokédex became a mobile app? | Design UI with me](https://www.youtube.com/watch?v=Kjun9QBr82Y).
 # App Screenshots
