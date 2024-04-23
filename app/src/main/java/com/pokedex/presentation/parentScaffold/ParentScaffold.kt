@@ -13,9 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -35,13 +32,10 @@ fun ParentScaffold(
     val navController = rememberNavController()
     val systemUiController = rememberSystemUiController()
 
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val color by viewModel.bgColor.collectAsStateWithLifecycle()
-
-    var typeId by remember { mutableStateOf("") }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val bgColor by animateColorAsState(
-        targetValue = color,
+        targetValue = state.bgColor,
         label = "bgColor",
         animationSpec = tween(
             durationMillis = 20,
@@ -60,20 +54,18 @@ fun ParentScaffold(
         )
     }
 
-    var isBtnVisible by remember { mutableStateOf(false) }
-
-    if (searchQuery.isNotEmpty()) {
+    if (state.searchQuery.isNotEmpty()) {
         if (navController.currentDestination?.route == Screen.Filter.route) {
             LaunchedEffect(Unit) {
                 delay(100)
                 navController.popBackStack()
-                isBtnVisible = false
+                viewModel.onEvent(ScaffoldUiEvent.BackBtnVisibility(false))
             }
         }
     }
 
     if (navController.currentDestination?.route == Screen.PokemonDetails.route) {
-        isBtnVisible = true
+        viewModel.onEvent(ScaffoldUiEvent.BackBtnVisibility(true))
     }
 
     Scaffold(
@@ -83,19 +75,21 @@ fun ParentScaffold(
             .statusBarsPadding(),
         topBar = {
             CustomTopAppBar(
-                searchQuery = searchQuery,
-                isVisible = isBtnVisible,
-                onSearchQueryChange = { viewModel.onSearchQueryChanged(it) },
+                searchQuery = state.searchQuery,
+                isVisible = state.isBtnVisible,
+                onSearchQueryChange = {
+                    viewModel.onEvent(ScaffoldUiEvent.SearchQueryChanged(it))
+                },
                 onSearchBarClick = {
-                    if (typeId.isEmpty()) {
+                    if (state.typeId.isEmpty()) {
                         when (navController.currentDestination?.route) {
                             Screen.PokemonList.route -> {
-                                isBtnVisible = it
+                                viewModel.onEvent(ScaffoldUiEvent.BackBtnVisibility(it))
                                 navController.navigate(Screen.Filter.route)
                             }
                             Screen.PokemonDetails.route -> {
-                                isBtnVisible = false
-                                viewModel.onBgColorChanged(Color.White)
+                                viewModel.onEvent(ScaffoldUiEvent.BackBtnVisibility(false))
+                                viewModel.onEvent(ScaffoldUiEvent.BgColorChanged(Color.White))
                                 navController.popBackStack()
                             }
                         }
@@ -103,8 +97,8 @@ fun ParentScaffold(
 
                 },
                 onBackBtnClick = {
-                    viewModel.onBgColorChanged(Color.White)
-                    viewModel.onSearchQueryChanged("")
+                    viewModel.onEvent(ScaffoldUiEvent.BgColorChanged(Color.White))
+                    viewModel.onEvent(ScaffoldUiEvent.SearchQueryChanged(""))
                     navController.popBackStack()
 
                     val type = navController
@@ -113,7 +107,7 @@ fun ParentScaffold(
                         .getString("typeId") ?: ""
 
                     if (type.isEmpty() && navController.currentDestination?.route != Screen.Filter.route) {
-                        isBtnVisible = false
+                        viewModel.onEvent(ScaffoldUiEvent.BackBtnVisibility(false))
                     }
                 }
             )
@@ -125,9 +119,13 @@ fun ParentScaffold(
         ) {
             NavGraph(
                 navController = navController,
-                onColorChange = { viewModel.onBgColorChanged(it) },
-                onTypeIdChange = { typeId = it },
-                searchQuery = searchQuery
+                onColorChange = {
+                    viewModel.onEvent(ScaffoldUiEvent.BgColorChanged(it))
+                },
+                onTypeIdChange = {
+                    viewModel.onEvent(ScaffoldUiEvent.PokemonTypeIdChanged(it))
+                },
+                searchQuery = state.searchQuery
             )
         }
     }
