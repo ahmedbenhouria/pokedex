@@ -29,8 +29,9 @@ class PokemonDetailsViewModel @Inject constructor(
     val pokemonDetailsState = _pokemonDetailsState.asStateFlow()
 
     init {
-        val pokemonId = savedStateHandle.get<String>("pokemonId")!!
-        getPokemonDetails(pokemonId)
+        savedStateHandle.get<String>("pokemonId")?.let { pokemonId ->
+            getPokemonDetails(pokemonId)
+        }
     }
 
     private fun getPokemonDetails(id: String) {

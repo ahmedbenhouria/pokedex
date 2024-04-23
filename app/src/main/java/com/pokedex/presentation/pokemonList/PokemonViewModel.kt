@@ -67,13 +67,13 @@ class PokemonViewModel @Inject constructor(
         )
 
     init {
-        val typeId = savedStateHandle.get<String>("typeId")!!
-        _pokemonTypeId.value = typeId
-
-        if (typeId.isEmpty()) {
-            loadPokemonPaginated()
-        } else {
-            getPokemonListByType(typeId)
+        savedStateHandle.get<String>("typeId")?.let { typeId ->
+            _pokemonTypeId.value = typeId
+            if (typeId.isEmpty()) {
+                loadPokemonPaginated()
+            } else {
+                getPokemonListByType(typeId)
+            }
         }
     }
 
