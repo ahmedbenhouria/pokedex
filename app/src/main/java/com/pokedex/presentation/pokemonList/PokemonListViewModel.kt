@@ -16,6 +16,7 @@ import com.pokedex.util.Constants.PAGE_SIZE
 import com.pokedex.util.Resource
 import com.pokedex.util.getPokemonImage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -24,43 +25,49 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class PokemonViewModel @Inject constructor(
+class PokemonListViewModel @Inject constructor(
     private val repository: PokemonRepositoryImpl,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private var _curPage = 0
 
-    private val _pokemonListState = MutableStateFlow(PokemonListUiState())
+    private val _screenState = MutableStateFlow(PokemonListUiState())
 
     private val _pokemonTypeId= MutableStateFlow("")
     val pokemonTypeId = _pokemonTypeId.asStateFlow()
 
     private val _searchQuery= MutableStateFlow("")
 
-    val pokemonListState = _searchQuery
-        .debounce(500L)
-        .combine(_pokemonListState) { searchQuery, screenState ->
-            if (searchQuery.isNotEmpty()) {
-                screenState.copy(
-                    data = screenState.data.filter { pokemon ->
-                        pokemon.name.contains(searchQuery.trim(), ignoreCase = true) ||
-                                pokemon.id.padStart(3, '0') == searchQuery.trim().padStart(3, '0')
-                    },
-                    isLoading = false,
-                    isSearching = true
-                )
-            } else {
-                screenState.copy(isSearching = false)
+    val screenState = _searchQuery
+        .debounce(300L)
+        .mapLatest { it.lowercase().trim() }
+        .distinctUntilChanged()
+        .combine(_screenState) { searchQuery, screenState ->
+            when {
+                searchQuery.isNotEmpty() -> {
+                    screenState.copy(
+                        data = screenState.data.filter { pokemon ->
+                            pokemon.name.contains(searchQuery, ignoreCase = true) ||
+                                    pokemon.id.padStart(3, '0') == searchQuery.padStart(3, '0')
+                        },
+                        isLoading = false,
+                        isSearching = true
+                    )
+                }
+                else -> screenState.copy(isSearching = false)
             }
-        }.stateIn(
+        }
+        .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = PokemonListUiState()
@@ -90,13 +97,13 @@ class PokemonViewModel @Inject constructor(
 
     fun loadPokemonPaginated() {
         viewModelScope.launch {
-            _pokemonListState.update {
+            _screenState.update {
                 it.copy(isLoading = true)
             }
 
             when (val result = repository.getPokemonList(_curPage)) {
                 is Resource.Success -> {
-                    _pokemonListState.update {
+                    _screenState.update {
                         it.copy(endReached = _curPage * PAGE_SIZE >= result.data!!.count)
                     }
 
@@ -118,10 +125,10 @@ class PokemonViewModel @Inject constructor(
                     }
 
                     _curPage++
-                    val updatedPokemonList = _pokemonListState.value.data.toMutableList()
+                    val updatedPokemonList = _screenState.value.data.toMutableList()
                     updatedPokemonList += updatedPokemonEntries
 
-                    _pokemonListState.update {
+                    _screenState.update {
                         it.copy(
                             loadError = "",
                             isLoading = false,
@@ -131,7 +138,7 @@ class PokemonViewModel @Inject constructor(
                 }
 
                 is Resource.Error -> {
-                    _pokemonListState.update {
+                    _screenState.update {
                         it.copy(
                             loadError = result.message!!,
                             isLoading = false
@@ -140,7 +147,7 @@ class PokemonViewModel @Inject constructor(
                 }
 
                 else -> {
-                    _pokemonListState.update {
+                    _screenState.update {
                         it.copy(isLoading = true)
                     }
                 }
@@ -150,7 +157,7 @@ class PokemonViewModel @Inject constructor(
 
     fun getPokemonListByType(id: String) {
         viewModelScope.launch {
-            _pokemonListState.update {
+            _screenState.update {
                 it.copy(
                     isLoading = true,
                     isSearching = false
@@ -175,7 +182,7 @@ class PokemonViewModel @Inject constructor(
                         pokemonEntry.copy(type = types)
                     }
 
-                    _pokemonListState.update { screenState ->
+                    _screenState.update { screenState ->
                         screenState.copy(
                             data = updatedPokemonEntries,
                             isLoading = false,
@@ -186,7 +193,7 @@ class PokemonViewModel @Inject constructor(
                 }
 
                 is Resource.Error -> {
-                    _pokemonListState.update {
+                    _screenState.update {
                         it.copy(
                             loadError = result.message!!,
                             isLoading = false,
@@ -196,7 +203,7 @@ class PokemonViewModel @Inject constructor(
                 }
 
                 else -> {
-                    _pokemonListState.update {
+                    _screenState.update {
                         it.copy(isLoading = true, isDataFiltered = false)
                     }
                 }
