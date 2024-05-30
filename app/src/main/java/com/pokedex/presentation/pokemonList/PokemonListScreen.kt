@@ -73,12 +73,14 @@ fun PokemonListScreen(
     onColorChange: (Color) -> Unit,
     searchQuery: String,
     onItemClick: (String, List<String>) -> Unit,
-    viewModel: PokemonViewModel = hiltViewModel()
+    viewModel: PokemonListViewModel = hiltViewModel()
 ) {
-    val state by viewModel.pokemonListState.collectAsStateWithLifecycle()
+    val state by viewModel.screenState.collectAsStateWithLifecycle()
     val typeId by viewModel.pokemonTypeId.collectAsStateWithLifecycle()
 
-    viewModel.onEvent(PokemonUiEvent.SearchQueryChanged(searchQuery))
+    LaunchedEffect(key1 = searchQuery) {
+        viewModel.onEvent(PokemonUiEvent.SearchQueryChanged(searchQuery))
+    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -147,30 +149,7 @@ private fun PokemonListSection(
     val listState = rememberLazyGridState()
 
     if (state.isSearching && state.data.isEmpty()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(modifier)
-                .padding(bottom = 150.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(
-                space = 22.dp,
-                alignment = Alignment.CenterVertically
-            )
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.no_pokemons),
-                contentDescription = null,
-                modifier = Modifier.size(200.dp)
-            )
-            Text(
-                text = "No Pokemons Found!",
-                color = Color.Black,
-                fontFamily = sfProFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 17.sp
-            )
-        }
+        EmptyPokemonList(modifier)
     } else {
         Column(
             modifier = Modifier
@@ -195,7 +174,7 @@ private fun PokemonListSection(
                     } else {
                         state.data.size + 1
                     }
-                    items(count = state.data.size, key = { it }) { item ->
+                    items(count = state.data.size, key = { index -> state.data[index].id }) { item ->
                         if (item >= itemCount - 1 && !state.endReached && !state.isLoading && !state.isDataFiltered) {
                             LaunchedEffect(key1 = true) {
                                 loadPokemonPaginated()
@@ -254,7 +233,7 @@ private fun PokemonListSection(
 fun PokemonItem(
     item: Pokemon,
     onItemClick: (String, Color) -> Unit,
-    viewModel: PokemonViewModel = hiltViewModel(),
+    viewModel: PokemonListViewModel = hiltViewModel(),
 ) {
     val defaultColor = Color.Gray
 
@@ -436,3 +415,32 @@ fun TypeBarSection(
     }
 }
 
+@Composable
+fun EmptyPokemonList(
+    modifier: Modifier
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(modifier)
+            .padding(bottom = 150.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(
+            space = 22.dp,
+            alignment = Alignment.CenterVertically
+        )
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.no_pokemons),
+            contentDescription = null,
+            modifier = Modifier.size(200.dp)
+        )
+        Text(
+            text = "No Pokemons Found!",
+            color = Color.Black,
+            fontFamily = sfProFont,
+            fontWeight = FontWeight.Medium,
+            fontSize = 17.sp
+        )
+    }
+}
